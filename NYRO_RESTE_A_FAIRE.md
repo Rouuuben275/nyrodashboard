@@ -1,6 +1,6 @@
 # Nyro Dashboard — ce qu’il reste à développer
 
-État du dépôt local au 23 octobre 2026, après le lot Documents de dossiers / Notes de frais. **29 modules disponibles sur 34 ne veut pas dire 29 modules intégralement finalisés.** Les validations et limites précises de chaque livraison sont dans `RPILOT_PROGRESS.md`. Les nouvelles migrations de cette session sont locales ; la production n’est pas déclarée mise à jour.
+État du dépôt local au 23 octobre 2026, après les lots Documents de dossiers / Notes de frais et préparation de la migration Vercel. **29 modules disponibles sur 34 ne veut pas dire 29 modules intégralement finalisés.** Les validations et limites précises de chaque livraison sont dans `RPILOT_PROGRESS.md`. Les nouvelles migrations de cette session sont locales ; la production n’est pas déclarée mise à jour. La publication et les secrets restent à configurer manuellement selon `VERCEL_COMMANDES_WINDOWS.md`.
 
 ## Les cinq modules encore indisponibles
 
@@ -64,7 +64,8 @@
 ## Mise en production et exploitation — hors modules métier
 
 - Appliquer les migrations manquantes sur **la bonne base Neon**, publier le build vérifié, puis tester en production avec les vrais comptes : Discord, sessions, droits, écritures et fichiers. Ne pas rejouer de seed ni réinitialiser la base.
-- Recontrôler les limites CPU/mémoire du vrai Worker et l’ancien incident Cloudflare 1102. Un succès dans workerd local ne prouve pas sa résolution en production.
+- Finaliser la bascule sur Vercel : six variables de production, callback Discord, historique/migrations Neon, publication puis recette hébergée et fichier privé de 5 Mo. Le code utilise désormais Next.js Node.js ; le Worker historique reste conservé jusqu’à validation. Aucun succès local n’est présenté comme la résolution de l’ancien incident 1102 sur ce Worker.
+- Traiter séparément les trois alertes npm élevées de la chaîne Prisma CLI / `@prisma/config` / `deepmerge-ts` constatées le 23 octobre ; le correctif proposé par npm implique Prisma 7 et doit être testé comme une migration dédiée.
 - Préparer une sauvegarde/restauration PostgreSQL vérifiée, la supervision, les alertes et une recette de charge adaptée aux volumes. Les empreintes de conservation ne constituent pas une sauvegarde restaurable.
 - Renseigner l’identité légale réelle de l’éditeur et le contact officiel de support encore signalés dans les pages publiques.
 - **Slots à 5 €** : le parcours existant reste désactivé. Compte Stripe, configuration prestataire, recette externe et activation explicite de vrais paiements restent nécessaires si cette offre doit être ouverte. Aucune clé secrète ne doit être mise dans le code ou le chat.

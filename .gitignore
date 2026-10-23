@@ -13,14 +13,16 @@ dist/
 .wrangler/
 .open-next/
 .cloudflare/
+.vinext/
+.local/
+.dev.vars
+.dev.vars.*
 # Fichiers secrets
 .env
 .env.*
 !.env.example
 !.env.vercel.example
-.vercel/
 *.zip
-!.env.vercel.example
 
 # Logs
 *.log

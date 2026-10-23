@@ -62,7 +62,10 @@ export async function transferCommand(actor:{id:string;name:string},raw:unknown)
  // Existing domain transactions recheck permissions, signature, revisions, quotas
  // and idempotency. Two concurrent finishes cannot create two business files.
  const result=row.kind==="LIBRARY"?await writeDocument(actor,row.metadata,{bytes:row.data,type:row.mimeType}):await writeAttachment(actor,row.metadata,{bytes:row.data,type:row.mimeType});
- await db.uploadTransfer.update({where:{id:row.id},data:{completedAt:new Date(),result,data:new Uint8Array()},select:{id:true}});
+ // An abort or expiry cleanup may remove the transient receipt while the
+ // domain transaction commits. The immutable file is already recorded, and
+ // its existing command key still prevents a duplicate on retry.
+ await db.uploadTransfer.updateMany({where:{id:row.id},data:{completedAt:new Date(),result,data:new Uint8Array()}});
  return {id:row.id,nextPart:row.nextPart,result};
 }
 export async function transferPart(actor:{id:string;name:string},raw:unknown,bytes:Uint8Array){

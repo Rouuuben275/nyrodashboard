@@ -3,6 +3,10 @@ node_modules/
 .local/
 .cloudflare/
 .vinext/
+.wrangler/
+.open-next/
+.dev.vars
+.dev.vars.*
 dist/
 .git/
 .env*

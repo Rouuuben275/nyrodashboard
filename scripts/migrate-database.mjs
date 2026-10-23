@@ -7,7 +7,8 @@ const command=process.argv[2],production=process.argv.includes("--production");
 if(!["status","deploy"].includes(command))throw new Error("Utiliser status ou deploy uniquement.");
 const runtime=process.env.DATABASE_URL,direct=process.env.DIRECT_URL;
 if(!runtime)throw new Error("DATABASE_URL manquante. Aucune valeur ne doit etre collee dans le chat.");
-const pooled=new URL(runtime),target=new URL(direct||runtime),local=["localhost","127.0.0.1"].includes(target.hostname);
+let pooled,target;try{pooled=new URL(runtime);target=new URL(direct||runtime);}catch{throw new Error("URL PostgreSQL invalide, valeur non affichee.");}
+const local=["localhost","127.0.0.1"].includes(target.hostname);
 if(production||!local){
  if(!direct)throw new Error("DIRECT_URL requise hors du PostgreSQL local ; reprendre la connexion directe de la meme base Neon.");
  if(pooled.hostname.replace(/-pooler(?=\.)/,"")!==target.hostname||pooled.pathname!==target.pathname)throw new Error("Les connexions directe et poolee ne designent pas la meme base. Aucune migration executee.");

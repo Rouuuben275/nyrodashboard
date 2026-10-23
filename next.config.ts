@@ -4,8 +4,8 @@ const config: NextConfig = {
   poweredByHeader: false,
   serverExternalPackages: ["pdfkit","@prisma/client","@prisma/adapter-pg","pg"],
   outputFileTracingIncludes: {
-    "/*": ["./node_modules/.prisma/client/**"],
-    "/api/**": ["./src/assets/report-font.ttf"]
+    "/**": ["./node_modules/.prisma/client/**"],
+    "/api/**": ["./src/assets/report-font.ttf","./node_modules/.prisma/client/**"]
   },
   async headers() {
     return [{ source: "/(.*)", headers: [
