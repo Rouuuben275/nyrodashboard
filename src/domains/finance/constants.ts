@@ -1,0 +1,6 @@
+export const incomeKinds = ["SALE", "REFUND", "INVOICE", "INVOICE_REFUND", "MANUAL_INCOME", "CORRECTION_INCOME"];
+export const expenseKinds = ["EXPENSE", "PURCHASE", "MANUAL_EXPENSE", "CORRECTION_EXPENSE", "PAYROLL"];
+export const effectFor = (kind: string) => incomeKinds.includes(kind) ? "INCOME" : expenseKinds.includes(kind) ? "EXPENSE" : "NEUTRAL";
+export const financeKindLabels:Record<string,string>={PAYROLL:"Versement paie RP",SALE:"Vente",REFUND:"Annulation de vente",INVOICE:"Facture réglée",INVOICE_REFUND:"Annulation de facture",EXPENSE:"Dépense",PURCHASE:"Réception fournisseur",MANUAL_INCOME:"Recette manuelle",MANUAL_EXPENSE:"Dépense manuelle",OPENING:"Solde d’ouverture",TRANSFER_OUT:"Transfert sortant",TRANSFER_IN:"Transfert entrant",CORRECTION_INCOME:"Correction de revenu",CORRECTION_EXPENSE:"Correction de charge",CORRECTION_NEUTRAL:"Correction neutre"};
+export const operationLabels:Record<string,string>={INCOME:"Recette RP",EXPENSE:"Dépense RP",OPENING:"Solde d’ouverture",TRANSFER:"Transfert interne",REVERSAL:"Contre-écriture"};
+export const operationStatuses:Record<string,string>={DRAFT:"Brouillon",PENDING:"À valider",POSTED:"Comptabilisée",REJECTED:"Refusée",CANCELLED:"Retirée"};

@@ -1,0 +1,27 @@
+{
+  "preparedAt": "2026-10-18T15:57:41.184Z",
+  "permissions": [
+    "crm.read",
+    "crm.manage",
+    "quotes.read",
+    "quotes.manage",
+    "invoices.read",
+    "invoices.manage",
+    "suppliers.read",
+    "suppliers.manage",
+    "orders.read",
+    "orders.manage"
+  ],
+  "roles": [
+    {
+      "id": "cmvdq1dlh000af91kdy2k9pek",
+      "companyId": "cmvdq1dl90008f91kyy2oq7gk",
+      "companyName": "Benny’s Original Motor Works"
+    },
+    {
+      "id": "cmvdtbn120004f9jshygg7pfx",
+      "companyId": "cmvdtbn0m0002f9jsql39617z",
+      "companyName": "Benny's"
+    }
+  ]
+}

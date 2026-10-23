@@ -1,0 +1,27 @@
+
+test("HTTP: platform owner, pending Discord access, space isolation and conservative suspension",async()=>{
+  const origin=process.env.BETTER_AUTH_URL!,prefix=`http-platform-${randomUUID()}`,userIds:string[]=[],sessionIds:string[]=[],keys:string[]=[],serverIds:string[]=[];
+  const fixture=async(name:string,discordId?:string)=>{const user=await db.user.create({data:{name:`${prefix}-${name}`,email:`${prefix}-${name}@example.test`}});userIds.push(user.id);if(discordId)await db.account.create({data:{id:randomUUID(),userId:user.id,providerId:"discord",accountId:discordId,accessToken:"http-fixture-private-token"}});const id=randomUUID(),token=randomBytes(32).toString("hex");sessionIds.push(id);await db.session.create({data:{id,userId:user.id,token,expiresAt:new Date(Date.now()+600000)}});const cookie=getCookies(auth.options).sessionToken;return {user,headers:{Cookie:(await serializeSignedCookie(cookie.name,token,process.env.BETTER_AUTH_SECRET!,cookie.attributes)).split(";")[0],Origin:origin,"Content-Type":"application/json"}};};
+  try{
+    const owner=await fixture("owner",process.env.RPILOT_OWNER_DISCORD_ID),normal=await fixture("normal");
+    assert.equal((await request(`${origin}/api/admin?view=users`)).status,401);
+    assert.equal((await request(`${origin}/api/admin?view=users`,{headers:normal.headers})).status,403);
+    const command=async(headers:Record<string,string>,payload:Record<string,unknown>)=>{const requestKey=randomUUID();keys.push(requestKey);return request(`${origin}/api/admin`,{method:"POST",headers,body:JSON.stringify({...payload,requestKey})});};
+    const created=await command(owner.headers,{action:"server.create",name:prefix,slug:prefix,maxCompanies:10,maxUsers:10,reason:"HTTP fixture community"});assert.equal(created.status,200,await created.clone().text());const server= (await created.json()).data as {id:string};serverIds.push(server.id);
+    const privateList=await request(`${origin}/api/admin?view=servers&id=${server.id}`,{headers:owner.headers});assert.equal(privateList.status,200);assert.match(privateList.headers.get("cache-control")??"",/no-store/);const list=await privateList.json();const role=list.selectedServer.roles.find((r:{name:string})=>r.name==="Administrateur");
+    const grant=await command(owner.headers,{action:"server.grant",serverId:server.id,discordId:"700000000000000002",roleId:role.id,status:"ACTIVE",reason:"Invite future Discord administrator"});assert.equal(grant.status,200,await grant.clone().text());
+    const invited=await fixture("invited","700000000000000002");
+    const spaces=await request(`${origin}/espaces`,{headers:invited.headers});assert.equal(spaces.status,200);assert.match(await spaces.text(),new RegExp(prefix));
+    assert.equal((await request(`${origin}/api/admin?view=users`,{headers:invited.headers})).status,403);
+    assert.equal((await request(`${origin}/api/workspace?space=${server.id}`,{headers:normal.headers})).status,403);
+    const workspace=await request(`${origin}/api/workspace?space=${server.id}`,{headers:invited.headers});assert.equal(workspace.status,200);assert.equal((await workspace.json()).space,server.id);
+    const panel=await request(`${origin}/admin/servers`,{headers:owner.headers});assert.equal(panel.status,200);assert.match(await panel.text(),/Administration RPilot|ADMINISTRATION RPILOT/);
+    const users=await request(`${origin}/api/admin?view=users`,{headers:owner.headers});const serialized=await users.text();assert.ok(!serialized.includes("http-fixture-private-token"));assert.ok(!serialized.includes('"token"'));
+    const invalidOrigin=await command({...owner.headers,Origin:"https://foreign.example"},{action:"sessions.revoke",id:normal.user.id,confirmation:normal.user.id,reason:"Origin rejection"});assert.equal(invalidOrigin.status,403);
+    const suspended=await command(owner.headers,{action:"access.status",target:"user",id:normal.user.id,revision:0,confirmation:normal.user.id,status:"SUSPENDED",reason:"Conservative fixture suspension"});assert.equal(suspended.status,200,await suspended.clone().text());
+    assert.equal((await request(`${origin}/api/workspace`,{headers:normal.headers})).status,401);assert.equal(await db.session.count({where:{userId:normal.user.id}}),0);
+    const audit=await request(`${origin}/api/admin?view=audit&q=${normal.user.id}`,{headers:owner.headers});assert.equal(audit.status,200);assert.ok((await audit.json()).total>=1);
+  }finally{
+    await db.platformCommand.deleteMany({where:{requestKey:{in:[...keys,...sessionIds.map(id=>`admin-visit:${createHash("sha256").update(id).digest("hex")}`)]}}});await db.platformAudit.deleteMany({where:{actorId:{in:userIds}}});await db.rPServer.deleteMany({where:{id:{in:serverIds}}});await db.user.deleteMany({where:{id:{in:userIds}}});for(const id of userIds)await db.rateLimit.deleteMany({where:{OR:[{key:{startsWith:`admin:${id}:`}},{key:{startsWith:`app:${id}:`}}]}});
+  }
+});

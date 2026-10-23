@@ -1,0 +1,26 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+import {runInNewContext} from "node:vm";
+import {createServer} from "node:http";
+import {once} from "node:events";
+import {preserveVinextRedirects} from "../scripts/vinext-redirect-compat";
+const source=readFileSync("node_modules/@vinext/cloudflare/dist/cache/cdn-adapter.worker.js","utf8");
+function cacheRequestFactory(code:string){
+  const from=code.indexOf("async function createCacheFacingRequest("),to=code.indexOf("\nfunction restoreResponseStageRequest(",from);
+  return runInNewContext(`${code.slice(from,to)}\ncreateCacheFacingRequest`,{Headers,Request,URL,TextEncoder,Uint8Array,crypto,Reflect,JSON,FRAMEWORK_RESPONSE_VARY_FIELDS:new Set(["RSC"]),getVinextCdnBuildIdentity:()=>"fixture-build",AUTHORIZATION_TRANSPORT_HEADER:"x-vinext-internal-authorization",REQUEST_CF_TRANSPORT_HEADER:"x-vinext-internal-request-cf",REQUEST_CACHE_CONTROL_TRANSPORT_HEADER:"x-vinext-internal-request-cache-control",REQUEST_PRAGMA_TRANSPORT_HEADER:"x-vinext-internal-request-pragma"}) as (r:Request,invocation:string)=>Promise<Request>;
+}
+test("vinext cache transport returns redirects and cookies without replaying OAuth",async()=>{
+  let targetRequests=0;
+  const server=createServer((req,res)=>{if(req.url?.startsWith("/callback")){res.writeHead(302,{Location:"/private","Set-Cookie":"fixture-session=fixture-value; HttpOnly; Path=/"});res.end();}else{targetRequests++;res.end("must not be followed inside the service binding");}});
+  server.listen(0,"127.0.0.1");await once(server,"listening");
+  try{
+    const address=server.address();assert.ok(address&&typeof address!=="string");
+    const request=new Request(`http://127.0.0.1:${address.port}/callback?state=fixture-only`,{headers:{Cookie:"fixture-state=fixture-only",Authorization:"Bearer fixture-only","Cache-Control":"no-cache"}});
+    const fixed=preserveVinextRedirects(source);assert.equal(preserveVinextRedirects(fixed),fixed);
+    const transport=await cacheRequestFactory(fixed)(request,JSON.stringify({requestUrl:request.url}));
+    assert.equal(transport.redirect,"manual");assert.equal(transport.headers.get("cookie"),"fixture-state=fixture-only");assert.equal(transport.headers.get("authorization"),null);assert.equal(decodeURIComponent(transport.headers.get("x-vinext-internal-authorization")!),"Bearer fixture-only");assert.equal(new URL(transport.url).searchParams.get("state"),"fixture-only");assert.ok(new URL(transport.url).searchParams.get("__vinext_cache_key"));
+    const response=await fetch(transport);assert.equal(response.status,302);assert.equal(response.headers.get("location"),"/private");assert.match(response.headers.get("set-cookie")||"",/fixture-session=/);await response.body?.cancel();assert.equal(targetRequests,0);
+  }finally{await new Promise<void>((resolve,reject)=>server.close(error=>error?reject(error):resolve()));}
+});
+test("vinext redirect compatibility refuses changed dependency layouts",()=>{assert.throws(()=>preserveVinextRedirects("export default {};"),/transport changed/);});

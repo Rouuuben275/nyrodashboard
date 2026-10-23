@@ -1,0 +1,40 @@
+import { bindings, defineConfig, defineWorker } from "cf/config";
+
+// Keep disabled until Stripe test verification and explicit live activation.
+// Choose "test" first; provide keys as Worker secrets, never in this file.
+const slotPaymentsMode: string = "disabled";
+
+export default defineConfig({
+  worker: defineWorker({
+    name: "rpilot",
+    entrypoint: "vinext/server/fetch-handler",
+    compatibilityDate: "2026-10-18",
+    compatibilityFlags: ["nodejs_compat"],
+    // Preserve the Worker logs already enabled in the Cloudflare dashboard.
+    observability: { logs: { enabled: true } },
+    assets: {
+      htmlHandling: "none",
+      notFoundHandling: "none",
+      runWorkerFirst: ["/*", "!/_next/static/*", "!/*/_next/static/*"],
+    },
+    env: {
+      ASSETS: bindings.assets(),
+      IMAGES: bindings.images(),
+      // Reuse the production cache namespace; omitting its ID conflicts with
+      // the remote binding during strict deploys after initial provisioning.
+      VINEXT_KV_CACHE: bindings.kv({ id: "635fab443de1423cb34546dc94bb1adc" }),
+      RPILOT_SLOT_PAYMENTS_MODE: bindings.text(slotPaymentsMode),
+      ...(slotPaymentsMode !== "disabled" ? {
+        STRIPE_SECRET_KEY: bindings.secret(),
+        STRIPE_WEBHOOK_SECRET: bindings.secret(),
+      } : {}),
+      DATABASE_URL: bindings.secret(),
+      RPILOT_OWNER_DISCORD_ID: bindings.secret(),
+      // Public values already configured on this Worker; no credentials here.
+      BETTER_AUTH_URL: bindings.text("https://rpilot.rpilot.workers.dev"),
+      BETTER_AUTH_SECRET: bindings.secret(),
+      DISCORD_CLIENT_ID: bindings.text("1561357530230296606"),
+      DISCORD_CLIENT_SECRET: bindings.secret(),
+    },
+  }),
+});

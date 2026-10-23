@@ -1,0 +1,1573 @@
+[
+  {
+    "name": "Account",
+    "columns": [
+      "id",
+      "accountId",
+      "providerId",
+      "userId",
+      "accessToken",
+      "refreshToken",
+      "idToken",
+      "accessTokenExpiresAt",
+      "refreshTokenExpiresAt",
+      "scope",
+      "password",
+      "createdAt",
+      "updatedAt"
+    ],
+    "count": 2,
+    "hash": "24d33824d1bba61fc31cdb18d7b0b1fa053f3b82a4316395f77ad5a988a50586"
+  },
+  {
+    "name": "Announcement",
+    "columns": [
+      "id",
+      "companyId",
+      "title",
+      "body",
+      "priority",
+      "scope",
+      "department",
+      "status",
+      "pinned",
+      "revision",
+      "createdBy",
+      "authorName",
+      "publishedBy",
+      "publisherName",
+      "publishedAt",
+      "startsAt",
+      "expiresAt",
+      "createdAt",
+      "updatedAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "AnnouncementCommand",
+    "columns": [
+      "id",
+      "companyId",
+      "requestKey",
+      "fingerprint",
+      "result"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "AnnouncementEvent",
+    "columns": [
+      "id",
+      "companyId",
+      "announcementId",
+      "actorId",
+      "actorName",
+      "action",
+      "reason",
+      "snapshot",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "AnnouncementRead",
+    "columns": [
+      "id",
+      "companyId",
+      "announcementId",
+      "memberId",
+      "memberName",
+      "department",
+      "readAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "AuditLog",
+    "columns": [
+      "id",
+      "companyId",
+      "actorId",
+      "actorName",
+      "action",
+      "entityId",
+      "details",
+      "createdAt"
+    ],
+    "count": 224,
+    "hash": "b265eb73a6f517bfff2141fe49061096c137ed8afad05ffa529e1a7abef20acd"
+  },
+  {
+    "name": "Automation",
+    "columns": [
+      "id",
+      "companyId",
+      "name",
+      "trigger",
+      "config",
+      "enabled"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "BillingDocument",
+    "columns": [
+      "id",
+      "companyId",
+      "customerId",
+      "number",
+      "kind",
+      "status",
+      "customerName",
+      "customerContact",
+      "notes",
+      "discountBps",
+      "subtotal",
+      "total",
+      "validUntil",
+      "createdAt",
+      "updatedAt",
+      "issuedAt",
+      "paidAt",
+      "cancelledAt",
+      "sourceId"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "BillingItem",
+    "columns": [
+      "id",
+      "companyId",
+      "documentId",
+      "position",
+      "label",
+      "quantity",
+      "unitPrice",
+      "total"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "CalendarCommand",
+    "columns": [
+      "id",
+      "companyId",
+      "requestKey",
+      "fingerprint",
+      "result"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "CalendarEvent",
+    "columns": [
+      "id",
+      "companyId",
+      "seriesId",
+      "title",
+      "description",
+      "location",
+      "kind",
+      "visibility",
+      "status",
+      "start",
+      "end",
+      "revision",
+      "createdBy",
+      "createdAt",
+      "updatedAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "CalendarHistory",
+    "columns": [
+      "id",
+      "companyId",
+      "eventId",
+      "actorId",
+      "actorName",
+      "action",
+      "reason",
+      "snapshot",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "CalendarInvite",
+    "columns": [
+      "id",
+      "companyId",
+      "eventId",
+      "memberId",
+      "memberName",
+      "active",
+      "response",
+      "responseNote",
+      "respondedAt",
+      "attendance",
+      "attendanceNote",
+      "attendanceAt",
+      "revision"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "CalendarSeries",
+    "columns": [
+      "id",
+      "companyId",
+      "occurrences",
+      "intervalWeeks",
+      "revision",
+      "createdBy",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "Company",
+    "columns": [
+      "id",
+      "name",
+      "slug",
+      "description",
+      "sector",
+      "serverId",
+      "currency",
+      "expenseThreshold",
+      "publicEnabled",
+      "createdAt",
+      "accessStatus",
+      "suspendedUntil",
+      "adminRevision"
+    ],
+    "count": 7,
+    "hash": "8428a9a6ac32d584afe54012e7a8637fa7af491be0fcc07aa796e217d8ebfe22"
+  },
+  {
+    "name": "CompanyMember",
+    "columns": [
+      "id",
+      "companyId",
+      "userId",
+      "roleId",
+      "characterName",
+      "department",
+      "status",
+      "hiredAt",
+      "salary"
+    ],
+    "count": 14,
+    "hash": "4f114207ab404830d561f5366d23d696dbf74e3f039b45d367d2fe5f2f0106c4"
+  },
+  {
+    "name": "CompanyModule",
+    "columns": [
+      "id",
+      "companyId",
+      "key",
+      "enabled",
+      "settings"
+    ],
+    "count": 96,
+    "hash": "5cbd389031a510da5f580f3031b8c745c86c1fbdb6d0711ec4e684f4211d0afa"
+  },
+  {
+    "name": "CompanyRole",
+    "columns": [
+      "id",
+      "companyId",
+      "name",
+      "permissions",
+      "isOwner",
+      "position"
+    ],
+    "count": 14,
+    "hash": "bea5607ae48cb7913dac4af595f51e0ed9b9a924db16f98c7613926b3beb7238"
+  },
+  {
+    "name": "Contract",
+    "columns": [
+      "id",
+      "companyId",
+      "title",
+      "content",
+      "status"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "Customer",
+    "columns": [
+      "id",
+      "companyId",
+      "name",
+      "phone",
+      "notes",
+      "archived",
+      "createdAt",
+      "email",
+      "segment",
+      "updatedAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "Department",
+    "columns": [
+      "id",
+      "companyId",
+      "name"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "Document",
+    "columns": [
+      "id",
+      "companyId",
+      "name",
+      "storageKey",
+      "mimeType",
+      "size"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "EmployeeEvent",
+    "columns": [
+      "id",
+      "companyId",
+      "memberId",
+      "kind",
+      "title",
+      "content",
+      "actorId",
+      "actorName",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "EmployeeProfile",
+    "columns": [
+      "id",
+      "companyId",
+      "memberId",
+      "phone",
+      "jobTitle",
+      "biography",
+      "updatedAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "Expense",
+    "columns": [
+      "id",
+      "companyId",
+      "label",
+      "amount",
+      "category",
+      "status",
+      "actorId",
+      "createdAt"
+    ],
+    "count": 21,
+    "hash": "7212c1a198e4f75a22cc9d06835cb6901c26b179e7879f947e41b53812cdec91"
+  },
+  {
+    "name": "FinanceAccount",
+    "columns": [
+      "id",
+      "companyId",
+      "name",
+      "type",
+      "isDefault",
+      "archived",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "FinanceCategory",
+    "columns": [
+      "id",
+      "companyId",
+      "name",
+      "kind",
+      "archived"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "FinanceOperation",
+    "columns": [
+      "id",
+      "companyId",
+      "requestKey",
+      "fingerprint",
+      "kind",
+      "status",
+      "label",
+      "amount",
+      "accountId",
+      "targetAccountId",
+      "categoryId",
+      "payment",
+      "occurredAt",
+      "createdAt",
+      "postedAt",
+      "createdBy",
+      "decidedBy",
+      "reason",
+      "reversesId",
+      "revision"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "FinanceReconciliation",
+    "columns": [
+      "id",
+      "companyId",
+      "accountId",
+      "requestKey",
+      "fingerprint",
+      "asOf",
+      "observed",
+      "ledgerBalance",
+      "entryCount",
+      "note",
+      "actorId",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "FinancialEntry",
+    "columns": [
+      "id",
+      "companyId",
+      "amount",
+      "kind",
+      "label",
+      "sourceId",
+      "actorId",
+      "createdAt",
+      "occurredAt",
+      "accountId",
+      "categoryId",
+      "operationId",
+      "reversalOfId",
+      "effect"
+    ],
+    "count": 170,
+    "hash": "a19e5f79519fffdee16f9a7bef4c1820f424565ac91d24faf0db3c291af7346b"
+  },
+  {
+    "name": "HrCampaign",
+    "columns": [
+      "id",
+      "companyId",
+      "templateId",
+      "name",
+      "templateName",
+      "criteria",
+      "from",
+      "to",
+      "status",
+      "revision",
+      "createdBy",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "HrCommand",
+    "columns": [
+      "id",
+      "companyId",
+      "requestKey",
+      "fingerprint",
+      "result"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "HrRecord",
+    "columns": [
+      "id",
+      "companyId",
+      "memberId",
+      "kind",
+      "campaignId",
+      "title",
+      "templateName",
+      "employeeName",
+      "department",
+      "status",
+      "revision",
+      "occurredAt",
+      "content",
+      "conclusion",
+      "privateNote",
+      "criteria",
+      "goals",
+      "scoreBps",
+      "createdBy",
+      "publishedBy",
+      "publishedAt",
+      "acknowledgedAt",
+      "employeeComment",
+      "createdAt",
+      "updatedAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "HrRecordEvent",
+    "columns": [
+      "id",
+      "companyId",
+      "recordId",
+      "action",
+      "actorId",
+      "actorName",
+      "reason",
+      "snapshot",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "HrTemplate",
+    "columns": [
+      "id",
+      "companyId",
+      "kind",
+      "name",
+      "instructions",
+      "criteria",
+      "archived",
+      "revision",
+      "createdAt",
+      "updatedAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "InventoryMovement",
+    "columns": [
+      "id",
+      "companyId",
+      "productId",
+      "quantity",
+      "reason",
+      "actorId",
+      "createdAt",
+      "kind",
+      "occurredAt",
+      "unitCost",
+      "sourceId",
+      "batchId",
+      "reversalOfId",
+      "warehouseId",
+      "warehouseLabel"
+    ],
+    "count": 58,
+    "hash": "06ff85feda4713076e0e733c6c4061152f7856de7d9de4ba9ce086aadcda1b07"
+  },
+  {
+    "name": "Invitation",
+    "columns": [
+      "id",
+      "companyId",
+      "email",
+      "roleId",
+      "tokenHash",
+      "status",
+      "expiresAt",
+      "createdAt"
+    ],
+    "count": 3,
+    "hash": "4809d6c1c9c8fe052b4a4d59d5338bed2c405314b0c4e2e360cd34dbd92301ce"
+  },
+  {
+    "name": "Job",
+    "columns": [
+      "id",
+      "automationId",
+      "dedupeKey",
+      "status",
+      "attempts",
+      "runAt",
+      "payload"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "JobApplication",
+    "columns": [
+      "id",
+      "companyId",
+      "jobId",
+      "userId",
+      "jobTitle",
+      "characterName",
+      "phone",
+      "motivation",
+      "availability",
+      "status",
+      "revision",
+      "interviewAt",
+      "interviewDetails",
+      "decisionReason",
+      "offeredRoleId",
+      "offeredRoleName",
+      "offeredDepartment",
+      "offeredSalary",
+      "offeredBy",
+      "createdAt",
+      "updatedAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "LeaveRequest",
+    "columns": [
+      "id",
+      "companyId",
+      "memberId",
+      "start",
+      "end",
+      "reason",
+      "status",
+      "decisionReason",
+      "decidedBy",
+      "decidedAt",
+      "cancelledAt",
+      "revision",
+      "cancelReason",
+      "typeId",
+      "typeName"
+    ],
+    "count": 2,
+    "hash": "741a3ce6b55528ac7d00e566eefd3beeedaba787fbc3f36402dc3b21f2998d31"
+  },
+  {
+    "name": "LeaveType",
+    "columns": [
+      "id",
+      "companyId",
+      "code",
+      "name",
+      "archived"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "MemberAvailability",
+    "columns": [
+      "id",
+      "companyId",
+      "memberId",
+      "start",
+      "end",
+      "kind",
+      "notes",
+      "active",
+      "revision",
+      "cancelReason"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "Notification",
+    "columns": [
+      "id",
+      "userId",
+      "title",
+      "body",
+      "readAt",
+      "createdAt"
+    ],
+    "count": 14,
+    "hash": "56c63aa65e5a3a420dc2ab217634fe50ea0a50a9f932f48ae3f42178ed1e91ff"
+  },
+  {
+    "name": "PayrollCommand",
+    "columns": [
+      "id",
+      "companyId",
+      "requestKey",
+      "fingerprint",
+      "result"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "PayrollEvent",
+    "columns": [
+      "id",
+      "companyId",
+      "slipId",
+      "action",
+      "actorId",
+      "reason",
+      "snapshot",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "PayrollPolicy",
+    "columns": [
+      "id",
+      "companyId",
+      "targetKey",
+      "memberId",
+      "roleId",
+      "mode",
+      "rate",
+      "regularMinutes",
+      "overtimeBps",
+      "commissionBps",
+      "revision",
+      "updatedAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "PayrollRun",
+    "columns": [
+      "id",
+      "companyId",
+      "label",
+      "from",
+      "to",
+      "status",
+      "createdBy",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "PayrollSlip",
+    "columns": [
+      "id",
+      "companyId",
+      "runId",
+      "memberId",
+      "status",
+      "revision",
+      "employeeName",
+      "department",
+      "roleName",
+      "mode",
+      "rate",
+      "regularMinutes",
+      "overtimeBps",
+      "commissionBps",
+      "workedMinutes",
+      "overtimeMinutes",
+      "baseAmount",
+      "overtimeAmount",
+      "salesAmount",
+      "commissionAmount",
+      "bonus",
+      "deduction",
+      "total",
+      "note",
+      "sourceHash",
+      "preparedBy",
+      "approvedBy",
+      "paidBy",
+      "paidAt",
+      "accountLabel",
+      "createdAt",
+      "updatedAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "PayrollTime",
+    "columns": [
+      "id",
+      "companyId",
+      "slipId",
+      "entryId",
+      "reviewId",
+      "revision",
+      "minutes"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "Plan",
+    "columns": [
+      "id",
+      "name",
+      "limits"
+    ],
+    "count": 2,
+    "hash": "a3734249f0ae21dce2183c2df1789bbf9ee0f922d92627e3fddd4634afd66627"
+  },
+  {
+    "name": "PlatformAudit",
+    "columns": [
+      "id",
+      "actorId",
+      "actorName",
+      "action",
+      "targetType",
+      "targetId",
+      "reason",
+      "result",
+      "correlationId",
+      "changes",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "PlatformCommand",
+    "columns": [
+      "id",
+      "requestKey",
+      "fingerprint",
+      "result",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "PlatformGrant",
+    "columns": [
+      "id",
+      "discordId",
+      "permissions",
+      "status",
+      "expiresAt",
+      "revision",
+      "createdAt",
+      "updatedAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "Product",
+    "columns": [
+      "id",
+      "companyId",
+      "name",
+      "sku",
+      "category",
+      "price",
+      "cost",
+      "stock",
+      "threshold",
+      "trackStock",
+      "archived",
+      "stockRevision"
+    ],
+    "count": 8,
+    "hash": "ceb6c0de30b1a1b6bfc3900af053d2ae5498f4df66cfb8be52c70582418e1cd7"
+  },
+  {
+    "name": "PurchaseItem",
+    "columns": [
+      "id",
+      "companyId",
+      "orderId",
+      "productId",
+      "name",
+      "quantity",
+      "unitCost",
+      "total",
+      "receivedQuantity"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "PurchaseOrder",
+    "columns": [
+      "id",
+      "companyId",
+      "supplierId",
+      "supplierName",
+      "number",
+      "status",
+      "notes",
+      "total",
+      "createdAt",
+      "updatedAt",
+      "orderedAt",
+      "receivedAt",
+      "receivedBy"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "PurchaseReceipt",
+    "columns": [
+      "id",
+      "companyId",
+      "orderId",
+      "requestKey",
+      "fingerprint",
+      "reference",
+      "notes",
+      "occurredAt",
+      "createdAt",
+      "actorId",
+      "total"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "PurchaseReceiptLine",
+    "columns": [
+      "id",
+      "companyId",
+      "receiptId",
+      "itemId",
+      "name",
+      "quantity",
+      "unitCost"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "RPCharacter",
+    "columns": [
+      "id",
+      "userId",
+      "name",
+      "phone"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "RPServer",
+    "columns": [
+      "id",
+      "name",
+      "description",
+      "createdAt",
+      "slug",
+      "logoUrl",
+      "bannerUrl",
+      "status",
+      "suspendedUntil",
+      "visibility",
+      "accessMode",
+      "maxCompanies",
+      "maxUsers",
+      "revision"
+    ],
+    "count": 4,
+    "hash": "89075408e59f82197a6b9aaf0835cdb1dd1ebe8d664a638bd3a958f3a0303e6a"
+  },
+  {
+    "name": "RateLimit",
+    "columns": [
+      "id",
+      "key",
+      "count",
+      "lastRequest"
+    ],
+    "count": 5,
+    "hash": "01975f19f995da5b1e7b7eef702d1cdbccdf9e56c152974ded025f970adb5650"
+  },
+  {
+    "name": "RecruitmentCommand",
+    "columns": [
+      "id",
+      "companyId",
+      "requestKey",
+      "fingerprint",
+      "resultId",
+      "revision",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "RecruitmentEvent",
+    "columns": [
+      "id",
+      "companyId",
+      "applicationId",
+      "kind",
+      "content",
+      "details",
+      "visibleToCandidate",
+      "actorId",
+      "actorName",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "RecruitmentJob",
+    "columns": [
+      "id",
+      "companyId",
+      "title",
+      "description",
+      "requirements",
+      "location",
+      "contractType",
+      "positions",
+      "status",
+      "revision",
+      "createdAt",
+      "updatedAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "Sale",
+    "columns": [
+      "id",
+      "companyId",
+      "number",
+      "requestKey",
+      "customer",
+      "sellerId",
+      "sellerName",
+      "payment",
+      "total",
+      "status",
+      "createdAt"
+    ],
+    "count": 147,
+    "hash": "b3fcdd46e691be6554d1365313226e2112201884d6bf594b25cf43651ff75085"
+  },
+  {
+    "name": "SaleItem",
+    "columns": [
+      "id",
+      "companyId",
+      "saleId",
+      "productId",
+      "name",
+      "quantity",
+      "unitPrice"
+    ],
+    "count": 147,
+    "hash": "b538017a411a1aa8fdc9d8b70ee4bd09eeaf3a28bb924a8224f1440a9ed822ef"
+  },
+  {
+    "name": "ScheduleCommand",
+    "columns": [
+      "id",
+      "companyId",
+      "requestKey",
+      "fingerprint",
+      "resultId",
+      "revision",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "ServerAccessCommand",
+    "columns": [
+      "id",
+      "serverId",
+      "requestKey",
+      "fingerprint",
+      "result",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "ServerAccessEvent",
+    "columns": [
+      "id",
+      "serverId",
+      "userId",
+      "actorId",
+      "actorName",
+      "kind",
+      "reason",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "ServerAccessRequest",
+    "columns": [
+      "id",
+      "serverId",
+      "userId",
+      "message",
+      "status",
+      "decisionReason",
+      "revision",
+      "requestedAt",
+      "decidedAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "ServerAuditLog",
+    "columns": [
+      "id",
+      "serverId",
+      "actorId",
+      "actorName",
+      "action",
+      "entityId",
+      "createdAt"
+    ],
+    "count": 3,
+    "hash": "625345a0cbb62360b7f5cb1f00172adbfaa04ffe2d22dd01e2e7589b96a413a0"
+  },
+  {
+    "name": "ServerCommunityMember",
+    "columns": [
+      "id",
+      "serverId",
+      "userId",
+      "status",
+      "revision",
+      "joinedAt",
+      "updatedAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "ServerDiscordGrant",
+    "columns": [
+      "id",
+      "serverId",
+      "discordId",
+      "roleId",
+      "status",
+      "expiresAt",
+      "revision",
+      "createdAt",
+      "updatedAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "ServerMember",
+    "columns": [
+      "id",
+      "serverId",
+      "userId",
+      "roleId",
+      "status",
+      "expiresAt"
+    ],
+    "count": 4,
+    "hash": "65feb442d036bee72b7c8c6ef9c9ea34061946f84e9a94aed256fac4f2d195a8"
+  },
+  {
+    "name": "ServerRole",
+    "columns": [
+      "id",
+      "serverId",
+      "name",
+      "permissions"
+    ],
+    "count": 4,
+    "hash": "fc4969cec6bb6028d78accda585e9664b25efb609d576385e9421a4a353bd1a6"
+  },
+  {
+    "name": "Session",
+    "columns": [
+      "id",
+      "expiresAt",
+      "token",
+      "createdAt",
+      "updatedAt",
+      "ipAddress",
+      "userAgent",
+      "userId"
+    ],
+    "count": 2,
+    "hash": "ebcaee014cac1a4399d8ec17575fe6f378212851d00b2573067c901168162e02"
+  },
+  {
+    "name": "Shift",
+    "columns": [
+      "id",
+      "companyId",
+      "memberId",
+      "title",
+      "start",
+      "end",
+      "status",
+      "revision",
+      "cancelReason",
+      "cancelledBy",
+      "seriesId"
+    ],
+    "count": 8,
+    "hash": "1ef47dfe3619002000999a9fcf52ae78dc95893fbe0f358f0e5717fd25aa4efa"
+  },
+  {
+    "name": "ShiftSeries",
+    "columns": [
+      "id",
+      "companyId",
+      "title",
+      "actorId",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "StockBatch",
+    "columns": [
+      "id",
+      "companyId",
+      "requestKey",
+      "fingerprint",
+      "kind",
+      "status",
+      "label",
+      "actorId",
+      "createdAt",
+      "postedAt",
+      "decidedBy",
+      "revision",
+      "reason",
+      "sourceWarehouseId",
+      "destinationWarehouseId",
+      "sourceLabel",
+      "destinationLabel"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "StockCountLine",
+    "columns": [
+      "id",
+      "companyId",
+      "batchId",
+      "productId",
+      "name",
+      "sku",
+      "expected",
+      "stockRevision",
+      "counted",
+      "reason"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "StockWarehouse",
+    "columns": [
+      "id",
+      "companyId",
+      "code",
+      "name",
+      "archived",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "Subscription",
+    "columns": [
+      "id",
+      "companyId",
+      "planId",
+      "status",
+      "externalId"
+    ],
+    "count": 7,
+    "hash": "d2bb92fce91307426d785d442697f7b946c9e608861788bd822b61ff4aa87ee7"
+  },
+  {
+    "name": "Supplier",
+    "columns": [
+      "id",
+      "companyId",
+      "name",
+      "contact",
+      "archived",
+      "createdAt",
+      "email",
+      "notes",
+      "phone",
+      "updatedAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "Task",
+    "columns": [
+      "id",
+      "companyId",
+      "title",
+      "priority",
+      "status",
+      "dueAt",
+      "createdAt",
+      "archived",
+      "assigneeId",
+      "createdBy",
+      "description",
+      "revision",
+      "updatedAt"
+    ],
+    "count": 3,
+    "hash": "0280aff418a9f60d77b0708ea8af6574f4a6fd94e956ca93b05b9a6dbeee0559"
+  },
+  {
+    "name": "TaskChecklistItem",
+    "columns": [
+      "id",
+      "companyId",
+      "taskId",
+      "title",
+      "done",
+      "position"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "TaskCommand",
+    "columns": [
+      "id",
+      "companyId",
+      "requestKey",
+      "fingerprint",
+      "result"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "TaskComment",
+    "columns": [
+      "id",
+      "companyId",
+      "taskId",
+      "authorId",
+      "authorName",
+      "body",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "TaskEvent",
+    "columns": [
+      "id",
+      "companyId",
+      "taskId",
+      "actorId",
+      "actorName",
+      "action",
+      "reason",
+      "snapshot",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "TaskStatus",
+    "columns": [
+      "id",
+      "companyId",
+      "name",
+      "position",
+      "archived",
+      "revision"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "TimeCommand",
+    "columns": [
+      "id",
+      "companyId",
+      "entryId",
+      "requestKey",
+      "fingerprint",
+      "revision",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "TimeCorrection",
+    "columns": [
+      "id",
+      "companyId",
+      "entryId",
+      "revision",
+      "start",
+      "end",
+      "pauseMinutes",
+      "reason",
+      "actorId",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "TimeEntry",
+    "columns": [
+      "id",
+      "companyId",
+      "memberId",
+      "start",
+      "end",
+      "revision"
+    ],
+    "count": 5,
+    "hash": "0b6fdcbffb67fc15d37ddcf78d294ee16ce42025041f6ce0b1ec454568e1fdbb"
+  },
+  {
+    "name": "TimePause",
+    "columns": [
+      "id",
+      "companyId",
+      "entryId",
+      "start",
+      "end",
+      "actorId"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "TimeReview",
+    "columns": [
+      "id",
+      "companyId",
+      "entryId",
+      "revision",
+      "status",
+      "reason",
+      "actorId",
+      "workedMinutes",
+      "start",
+      "end",
+      "createdAt"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "User",
+    "columns": [
+      "id",
+      "name",
+      "email",
+      "emailVerified",
+      "image",
+      "createdAt",
+      "updatedAt",
+      "accessStatus",
+      "suspendedUntil",
+      "adminRevision"
+    ],
+    "count": 13,
+    "hash": "6bae7973f3363abad4240881527695e2fbf2f793b45513f314fc15f185af2e75"
+  },
+  {
+    "name": "Verification",
+    "columns": [
+      "id",
+      "identifier",
+      "value",
+      "expiresAt",
+      "createdAt",
+      "updatedAt"
+    ],
+    "count": 2,
+    "hash": "2d0e611af8779781730538783041dcb36e7debd03708af2cf219dddbe244797a"
+  },
+  {
+    "name": "WarehouseStock",
+    "columns": [
+      "id",
+      "companyId",
+      "warehouseId",
+      "productId",
+      "quantity"
+    ],
+    "count": 0,
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+]

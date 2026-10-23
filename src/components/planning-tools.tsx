@@ -1,0 +1,30 @@
+"use client";
+import {useState} from "react";
+import type {Serialized} from "@/domains/core/queries";
+import type {PlanningData} from "@/domains/planning/queries";
+import {useWorkspace} from "./workspace-context";
+import {RPilotDialog} from "./ui/dialog";
+import {RPilotInput} from "./ui/input";
+import {RPilotSelect} from "./ui/select";
+import {RPilotTextarea} from "./ui/textarea";
+type Data=Serialized<PlanningData>;
+export const localDate=(v:string)=>{const d=new Date(v);return new Date(+d-d.getTimezoneOffset()*60000).toISOString().slice(0,16);};
+export function ScheduleField({label,children}:{label:string;children:React.ReactNode}){return <label className="form-field"><span>{label}</span>{children}</label>;}
+export function PlanningAvailability({data}:{data:Data}){
+  const {busy}=useWorkspace();const [editing,setEditing]=useState<Data["availabilities"][number]|"new"|null>(null);const [withdraw,setWithdraw]=useState<Data["availabilities"][number]|null>(null);
+  return <section className="panel padded"><div className="page-heading"><div><h3>Disponibilités déclarées</h3><p>{data.manage?"Disponibilités accessibles sur la période affichée.":"Vos disponibilités sur la période affichée."} Une disponibilité ne crée pas de service.</p></div><button className="btn outline" onClick={()=>setEditing("new")}>Déclarer une disponibilité</button></div><div className="table-scroll"><table><thead><tr><th>Employé</th><th>Période</th><th>Type</th><th>Note</th><th>Actions</th></tr></thead><tbody>{data.availabilities.map(a=><tr key={a.id}><td>{a.member.characterName}</td><td>{new Date(a.start).toLocaleString("fr-FR")} — {new Date(a.end).toLocaleString("fr-FR")}</td><td>{a.kind==="AVAILABLE"?"Disponible":"Indisponible"}</td><td>{a.notes||"—"}</td><td><div className="row-actions"><button className="btn outline small" onClick={()=>setEditing(a)}>Modifier</button><button className="btn outline small" onClick={()=>setWithdraw(a)}>Retirer</button></div></td></tr>)}</tbody></table>{!data.availabilities.length&&<p className="empty compact">Aucune disponibilité déclarée sur la période.</p>}</div>
+    <RPilotDialog open={!!editing} onOpenChange={v=>!v&&setEditing(null)} title="Déclarer une disponibilité" preventClose={busy}>{editing&&<AvailabilityForm key={editing==="new"?"new":editing.id} data={data} record={editing==="new"?undefined:editing} completed={()=>setEditing(null)}/>}</RPilotDialog>
+    <RPilotDialog open={!!withdraw} onOpenChange={v=>!v&&setWithdraw(null)} title="Retirer une disponibilité" preventClose={busy}>{withdraw&&<ScheduleDecision payload={{action:"availability.cancel",availabilityId:withdraw.id,revision:withdraw.revision}} completed={()=>setWithdraw(null)} description="La déclaration restera conservée comme retirée."/>}</RPilotDialog>
+  </section>;
+}
+function AvailabilityForm({data,record,completed}:{data:Data;record?:Data["availabilities"][number];completed:()=>void}){
+  const {mutate,busy}=useWorkspace();const [error,setError]=useState("");const [requestKey]=useState(()=>crypto.randomUUID());
+  return <form className="workspace-form" onSubmit={async e=>{e.preventDefault();const form=new FormData(e.currentTarget);setError("");try{await mutate({action:"availability.save",requestKey,availabilityId:record?.id,revision:record?.revision??0,memberId:form.get("memberId")||data.viewerId,start:new Date(String(form.get("start"))).toISOString(),end:new Date(String(form.get("end"))).toISOString(),kind:form.get("kind"),notes:form.get("notes")});completed();}catch(e){setError(e instanceof Error?e.message:"Échec");}}}>
+    {data.manage&&<ScheduleField label="Employé"><RPilotSelect name="memberId" defaultValue={record?.memberId??data.viewerId} options={data.staff.filter(m=>m.status==="ACTIVE").map(m=>({value:m.id,label:m.characterName}))}/></ScheduleField>}
+    <ScheduleField label="Début"><RPilotInput name="start" type="datetime-local" required defaultValue={record?localDate(record.start):""}/></ScheduleField><ScheduleField label="Fin"><RPilotInput name="end" type="datetime-local" required defaultValue={record?localDate(record.end):""}/></ScheduleField><ScheduleField label="Type"><RPilotSelect name="kind" defaultValue={record?.kind??"AVAILABLE"} options={[{value:"AVAILABLE",label:"Disponible"},{value:"UNAVAILABLE",label:"Indisponible"}]}/></ScheduleField><ScheduleField label="Note interne de disponibilité"><RPilotTextarea name="notes" maxLength={500} defaultValue={record?.notes??""}/></ScheduleField><p className="finance-note">Une indisponibilité chevauchant un service déjà planifié sera refusée. Les notes sont visibles par vous et les responsables du planning.</p>{error&&<p className="form-error-box" role="alert">{error}</p>}<button className="btn primary" disabled={busy}>Enregistrer</button>
+  </form>;
+}
+export function ScheduleDecision({payload,completed,description,series=false}:{payload:Record<string,unknown>;completed:()=>void;description:string;series?:boolean}){
+  const {mutate,busy}=useWorkspace();const [error,setError]=useState("");const [requestKey]=useState(()=>crypto.randomUUID());
+  return <form className="workspace-form" onSubmit={async e=>{e.preventDefault();const form=new FormData(e.currentTarget);setError("");try{await mutate({...payload,requestKey,reason:form.get("reason"),...(series?{from:new Date(String(form.get("from"))).toISOString()}:{})});completed();}catch(e){setError(e instanceof Error?e.message:"Échec");}}}><p>{description}</p>{series&&<ScheduleField label="Annuler les services commençant à partir du"><RPilotInput name="from" type="datetime-local" required defaultValue={localDate(new Date(Date.now()+60000).toISOString())}/></ScheduleField>}<ScheduleField label="Motif"><RPilotTextarea name="reason" required minLength={3} maxLength={500}/></ScheduleField><label className="checkbox-label"><RPilotInput type="checkbox" required/>Je confirme cette opération RP.</label>{error&&<p className="form-error-box" role="alert">{error}</p>}<button className="btn primary" disabled={busy}>Confirmer</button></form>;
+}

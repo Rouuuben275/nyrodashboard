@@ -1,0 +1,2 @@
+import Image from "next/image";
+export function Brand({href="/",compact=false}:{href?:string;compact?:boolean}){return <a href={href} className={`brand ${compact?"brand-compact":""}`} aria-label="Nyro Dashboard — accueil"><Image className="brand-art nyro-art" src="/branding/nyro-icon.png" alt="" width={36} height={36}/><span className="brand-name"><Image className="nyro-wordmark" src="/branding/nyro-logo.png" alt="Nyro Dashboard" width={210} height={35}/></span></a>;}

@@ -1,0 +1,3 @@
+import "dotenv/config";
+import {db} from "../src/lib/db";
+try{const [users,discordAccounts,sessions,servers,roles,members,affiliated,independent,subscriptions]=await Promise.all([db.user.count(),db.account.count({where:{providerId:"discord"}}),db.session.count({where:{expiresAt:{gt:new Date()}}}),db.rPServer.count(),db.serverRole.count(),db.serverMember.count(),db.company.count({where:{serverId:{not:null}}}),db.company.count({where:{serverId:null}}),db.subscription.groupBy({by:["status"],_count:true})]);console.log(JSON.stringify({users,discordAccounts,validSessions:sessions,servers,serverRoles:roles,serverMemberships:members,affiliatedCompanies:affiliated,independentCompanies:independent,subscriptions},null,2));}finally{await db.$disconnect();}

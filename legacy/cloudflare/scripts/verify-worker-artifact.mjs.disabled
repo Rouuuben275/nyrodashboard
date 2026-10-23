@@ -1,0 +1,31 @@
+import fs from "node:fs";
+import path from "node:path";
+import assert from "node:assert/strict";
+import {parse} from "dotenv";
+const walk=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(dir,e.name)):[path.join(dir,e.name)]);
+const root=".cloudflare/output/v0/workers/default";
+const files=walk(root);
+assert.match(fs.readFileSync("prisma/schema.prisma","utf8"),/engineType\s*=\s*"client"/);
+const versions=["prisma","@prisma/client","@prisma/adapter-pg"].map(name=>JSON.parse(fs.readFileSync(`node_modules/${name}/package.json`,"utf8")).version);
+assert.equal(new Set(versions).size,1,"Prisma CLI, client and adapter versions must match");
+assert.ok(!files.some(f=>/\.(?:node|dll|so|dylib|exe)$/.test(f)),"Worker artifact must contain no native engine");
+assert.ok(files.some(f=>f.endsWith(".wasm")),"The Worker query compiler must be bundled as WASM");
+const config=JSON.parse(fs.readFileSync(`${root}/worker.config.json`,"utf8"));
+const cacheTransports=files.filter(file=>file.endsWith(".js")).map(file=>fs.readFileSync(file,"utf8")).filter(code=>code.includes("__vinext_cache_key"));
+assert.ok(cacheTransports.length>0,"The vinext cache transport must be inspectable");
+for(const code of cacheTransports){const start=code.indexOf("__vinext_cache_key");assert.match(code.slice(start,start+2000),/new Request\([^,]+,\{\s*redirect:\s*[`"']manual/,"Cache transport must return OAuth redirects without following them internally");}
+assert.ok(config.compatibilityFlags.includes("nodejs_compat"));
+assert.equal(config.observability?.logs?.enabled,true,"Deployment must preserve enabled Worker logs");
+assert.equal(config.env.VINEXT_KV_CACHE?.type,"kv","Deployment must preserve the vinext KV cache binding");
+assert.equal(config.env.VINEXT_KV_CACHE.id,"635fab443de1423cb34546dc94bb1adc","Deployment must reuse the existing production KV namespace; rebuild after changing cloudflare.config.ts");
+for(const name of ["DATABASE_URL","BETTER_AUTH_SECRET","DISCORD_CLIENT_SECRET","RPILOT_OWNER_DISCORD_ID"])assert.equal(config.env[name]?.type,"secret",`${name} must stay a runtime secret binding`);
+assert.equal(config.env.BETTER_AUTH_URL?.type,"text");
+assert.equal(config.env.BETTER_AUTH_URL.value,"https://rpilot.rpilot.workers.dev","Do not deploy test or local callback URLs");
+assert.equal(config.env.DISCORD_CLIENT_ID?.type,"text");
+assert.match(config.env.DISCORD_CLIENT_ID.value,/^\d+$/);
+const local=fs.existsSync(".env")?parse(fs.readFileSync(".env")):{};
+const paymentsMode=config.env.RPILOT_SLOT_PAYMENTS_MODE?.value??"disabled";
+assert.ok(["disabled","test","live"].includes(paymentsMode),"Invalid company slot payment mode");
+if(paymentsMode!=="disabled")for(const name of ["STRIPE_SECRET_KEY","STRIPE_WEBHOOK_SECRET"])assert.equal(config.env[name]?.type,"secret",`${name} must be a runtime secret binding`);
+for(const file of files){const bytes=fs.readFileSync(file);for(const name of ["DATABASE_URL","BETTER_AUTH_SECRET","DISCORD_CLIENT_SECRET","RPILOT_OWNER_DISCORD_ID","STRIPE_SECRET_KEY","STRIPE_WEBHOOK_SECRET"]){const secret=local[name];if(secret&&secret.length>=12)assert.ok(!bytes.includes(Buffer.from(secret)),`${name} leaked into a build artifact (value withheld)`);}if(file.endsWith(".js"))assert.ok(!bytes.toString("utf8").includes("src/assets/report-font.ttf"),"Worker must embed the report font instead of reading a Node filesystem path");}
+console.log(`Worker verified: Prisma ${versions[0]}, WASM compiler bundled, no native binary, nodejs_compat, existing KV namespace preserved, protected runtime bindings and public OAuth settings, logs enabled, no local secrets embedded, slot payment mode ${paymentsMode}.`);

@@ -1,0 +1,17 @@
+import {execFileSync} from "node:child_process";
+// Inspect metadata only in memory. Never persist or print binding values:
+// older deployments can contain credentials in plain_text variables.
+try{
+  const raw=execFileSync(process.execPath,["node_modules/cf/bin/cf","workers","versions","get","latest","--worker-id","rpilot"],{encoding:"utf8",stdio:["ignore","pipe","pipe"]});
+  const version=JSON.parse(raw),bindings=version.bindings||[];
+  const missing=["DATABASE_URL","BETTER_AUTH_URL","BETTER_AUTH_SECRET","DISCORD_CLIENT_ID","DISCORD_CLIENT_SECRET","RPILOT_OWNER_DISCORD_ID"].filter(name=>!bindings.some(b=>b.name===name)&&!Object.hasOwn(version.env||{},name));
+  if(missing.length)throw new Error(`Bindings manquants sur rpilot : ${missing.join(", ")}. Configurez-les dans Cloudflare > Workers > rpilot > Settings > Variables and Secrets avant le déploiement.`);
+  const database=bindings.find(b=>b.name==="DATABASE_URL");const value=database?.text||database?.value;
+  if(typeof value==="string"){
+    let url;try{url=new URL(value);}catch{throw new Error("DATABASE_URL distant est invalide (valeur masquée).");}
+    if(!["postgres:","postgresql:"].includes(url.protocol)||["localhost","127.0.0.1","[::1]"].includes(url.hostname))throw new Error("DATABASE_URL doit joindre un PostgreSQL hébergé en connexion directe ; localhost et Prisma Accelerate ne conviennent pas à ce pilote.");
+  }
+  const plaintext=bindings.filter(b=>["DATABASE_URL","BETTER_AUTH_SECRET","DISCORD_CLIENT_SECRET","RPILOT_OWNER_DISCORD_ID"].includes(b.name)&&b.type==="plain_text").map(b=>b.name);
+  if(plaintext.length)throw new Error(`Bindings déclarés comme secrets dans cloudflare.config.ts mais encore en texte brut dans Cloudflare : ${plaintext.join(", ")}. Convertissez-les en secrets en conservant les valeurs existantes ; aucune valeur à copier dans le code.`);
+  console.log("Worker rpilot : six bindings présents ; aucune valeur sensible affichée.");
+}catch(e){console.error(e?.status?"Impossible de lire le Worker rpilot. Vérifiez la connexion Cloudflare avec npx cf auth login.":e instanceof Error?e.message:"Vérification Cloudflare impossible.");process.exitCode=1;}

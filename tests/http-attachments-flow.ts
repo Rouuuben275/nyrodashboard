@@ -1,0 +1,42 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {randomBytes,randomUUID} from "node:crypto";
+import {db} from "../src/lib/db";
+import {auth} from "../src/lib/auth";
+import {getCookies} from "better-auth/cookies";
+import {serializeSignedCookie} from "better-call";
+import {execute} from "../src/domains/core/service";
+test("HTTP: private evidence, real binary versions and RP reimbursement persist across sessions",async()=>{
+ const origin=process.env.BETTER_AUTH_URL!,users:string[]=[],companies:string[]=[];
+ try{
+  const person=async(name:string)=>{const u=await db.user.create({data:{name,email:`proof-http-${randomUUID()}@example.test`}});users.push(u.id);const token=randomBytes(32).toString("hex");await db.session.create({data:{id:randomUUID(),userId:u.id,token,expiresAt:new Date(Date.now()+600000)}});const c=getCookies(auth.options).sessionToken;return {u,headers:{Origin:origin,Cookie:(await serializeSignedCookie(c.name,token,process.env.BETTER_AUTH_SECRET!,c.attributes)).split(";")[0]}};};
+  const owner=await person("Direction HTTP"),employee=await person("Employé HTTP"),other=await person("Autre employé");
+  const company=await execute(owner.u,undefined,{action:"company.create",name:`Justificatifs HTTP ${randomUUID()}`,sector:"Services"}) as {id:string};companies.push(company.id);
+  await db.companyModule.updateMany({where:{companyId:company.id,key:{in:["documents","expenses","employees","leaves","tasks","finance"]}},data:{enabled:true}});
+  const role=await db.companyRole.create({data:{companyId:company.id,name:"Dépenses personnelles",permissions:["expenses.read","expenses.create","employees.read","leaves.read","tasks.read"]}});
+  const member=await db.companyMember.create({data:{companyId:company.id,userId:employee.u.id,roleId:role.id,characterName:employee.u.name}});await db.companyMember.create({data:{companyId:company.id,userId:other.u.id,roleId:role.id,characterName:other.u.name}});
+  const get=async(path:string,headers:Record<string,string>=employee.headers)=>{const r=await fetch(`${origin}${path}`,{headers});return {status:r.status,headers:r.headers,bytes:Buffer.from(await r.arrayBuffer())};};
+  const post=async(module:string,p:Record<string,unknown>,headers=employee.headers)=>{const r=await fetch(`${origin}/api/${module}`,{method:"POST",headers:{...headers,"Content-Type":"application/json"},body:JSON.stringify({companyId:company.id,requestKey:randomUUID(),...p})});return {status:r.status,data:await r.json()};};
+  const target={companyId:company.id,targetType:"EMPLOYEE",targetId:member.id},query=new URLSearchParams(target).toString();
+  for(const path of [`/api/attachments?${query}`,`/api/expenses?companyId=${company.id}`])assert.equal((await get(path,{})).status,401);
+  assert.equal((await get(`/api/attachments?${query}`,other.headers)).status,403);
+  const file=Buffer.from("Pièce justificative persistée par HTTP"),payload={...target,requestKey:randomUUID(),name:"Justificatif HTTP",fileName:"preuve.txt",note:"Dépôt depuis le poste utilisateur"};
+  const upload=async(p=payload,bytes=file,headers=employee.headers,type="text/plain")=>{const r=await fetch(`${origin}/api/attachments?${new URLSearchParams(p)}`,{method:"POST",headers:{...headers,"Content-Type":type},body:bytes});return {status:r.status,data:await r.json()};};
+  assert.equal((await upload(payload,file,{...employee.headers,Origin:"https://evil.test"})).status,403);
+  assert.equal((await upload({...payload,fileName:"bad.svg"},Buffer.from("<svg/>"),employee.headers,"image/svg+xml")).status,415);
+  const a=await upload();assert.equal(a.status,201,JSON.stringify(a.data));const docId=a.data.id;assert.equal((await upload()).data.id,docId);assert.equal(await db.document.count({where:{companyId:company.id}}),1);
+  const path=`/api/documents/file?companyId=${company.id}&documentId=${docId}`,download=await get(path);assert.equal(download.status,200);assert.deepEqual(download.bytes,file);assert.match(download.headers.get("cache-control")??"",/no-store/);assert.match(download.headers.get("content-security-policy")??"",/sandbox/);
+  assert.equal((await get(path,other.headers)).status,403);const library=await get(`/api/documents?companyId=${company.id}`,owner.headers);assert.equal(JSON.parse(library.bytes.toString()).total,0);
+  const created=await post("expenses",{action:"save",label:"Fournitures avancées HTTP",category:"Équipement",description:"Achat pour le fonctionnement RP",amount:8900,spentOn:"2026-01-15"});assert.equal(created.status,200,JSON.stringify(created.data));const claimId=created.data.id;
+  assert.equal((await post("expenses",{action:"submit",id:claimId,revision:0,reason:"Soumettre les frais"})).status,400);
+  assert.equal((await upload({...payload,targetType:"CLAIM",targetId:claimId,requestKey:randomUUID()})).status,201);
+  assert.equal((await post("expenses",{action:"submit",id:claimId,revision:0,reason:"Soumettre les frais"})).status,200);
+  assert.equal((await post("expenses",{action:"decide",id:claimId,revision:1,reason:"Pièces contrôlées",approve:true},owner.headers)).status,200);
+  assert.equal(await db.financialEntry.count({where:{companyId:company.id}}),0);
+  const pay={action:"pay",id:claimId,revision:2,reference:"Virement RP HTTP 001",requestKey:randomUUID()};assert.equal((await post("expenses",pay,{...owner.headers,Origin:"https://evil.test"})).status,403);
+  const [p1,p2]=await Promise.all([post("expenses",pay,owner.headers),post("expenses",pay,owner.headers)]);assert.equal(p1.status,200,JSON.stringify(p1.data));assert.equal(p2.status,200,JSON.stringify(p2.data));
+  assert.equal((await get(`/api/expenses?companyId=${company.id}&id=${claimId}`,other.headers)).status,404);
+  const persisted=await get(`/api/expenses?companyId=${company.id}&id=${claimId}`);assert.equal(JSON.parse(persisted.bytes.toString()).selected.status,"PAID");assert.equal(await db.expense.count({where:{companyId:company.id}}),1);assert.equal((await db.financialEntry.aggregate({where:{companyId:company.id},_sum:{amount:true}}))._sum.amount,-8900);
+  await db.companyMember.update({where:{id:member.id},data:{status:"INACTIVE"}});assert.equal((await get(path)).status,403);assert.equal((await get(`/api/expenses?companyId=${company.id}&id=${claimId}`)).status,403);
+ }finally{await db.expenseClaim.deleteMany({where:{companyId:{in:companies}}});await db.companyMember.deleteMany({where:{companyId:{in:companies}}});await db.company.deleteMany({where:{id:{in:companies}}});await db.user.deleteMany({where:{id:{in:users}}});for(const id of users)await db.rateLimit.deleteMany({where:{OR:[{key:{startsWith:`documents:${id}:`}},{key:{startsWith:`utility:${id}:`}},{key:{startsWith:`app:${id}:`}}]}});}
+});

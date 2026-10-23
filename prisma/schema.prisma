@@ -1,0 +1,1985 @@
+generator client {
+  provider = "prisma-client-js"
+  engineType = "client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  uploadTransfers UploadTransfer[]
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  themePreference String?
+  notificationMutedCategories String[] @default([])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  accessStatus  String @default("ACTIVE")
+  suspendedUntil DateTime?
+  adminRevision Int @default(0)
+  sessions      Session[]
+  accounts      Account[]
+  characters    RPCharacter[]
+  memberships   CompanyMember[]
+  servers       ServerMember[]
+  notifications Notification[]
+  jobApplications JobApplication[]
+  communityMemberships ServerCommunityMember[]
+  serverAccessRequests ServerAccessRequest[]
+  uploadedLogos LogoAsset[]
+}
+
+model LogoAsset {
+  id String @id @default(uuid())
+  ownerId String
+  purpose String
+  data Bytes
+  size Int
+  width Int
+  height Int
+  attachedAt DateTime?
+  createdAt DateTime @default(now())
+  owner User @relation(fields:[ownerId],references:[id],onDelete:Cascade)
+  companies Company[]
+  servers RPServer[]
+  @@index([ownerId,createdAt])
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+// Better Auth OAuthAccount model, including credentials and Discord accounts.
+model Account {
+  id                     String   @id
+  accountId              String
+  providerId             String
+  userId                 String
+  accessToken            String?
+  refreshToken           String?
+  idToken                String?
+  accessTokenExpiresAt   DateTime?
+  refreshTokenExpiresAt  DateTime?
+  scope                  String?
+  password               String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+// Entitlements belong to the verified Discord identity, including before signup.
+model CompanySlotAccount {
+  discordId String @id
+  granted Int @default(0)
+  purchased Int @default(0)
+  revision Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CompanySlotPurchase {
+  id String @id @default(cuid())
+  discordId String
+  requestKey String @unique
+  status String @default("PENDING")
+  mode String
+  amount Int @default(500)
+  currency String @default("eur")
+  sessionId String? @unique
+  checkoutUrl String?
+  paymentIntentId String? @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  paidAt DateTime?
+  reversedAt DateTime?
+  @@index([discordId,createdAt,id])
+}
+
+model CompanySlotPaymentEvent {
+  id String @id
+  type String
+  purchaseId String
+  createdAt DateTime @default(now())
+  @@index([purchaseId,createdAt])
+}
+
+model PlatformGrant {
+  id String @id @default(cuid())
+  discordId String @unique
+  permissions String[]
+  status String @default("ACTIVE")
+  expiresAt DateTime?
+  revision Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ServerDiscordGrant {
+  id String @id @default(cuid())
+  serverId String
+  discordId String
+  roleId String
+  status String @default("ACTIVE")
+  expiresAt DateTime?
+  revision Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  server RPServer @relation(fields:[serverId],references:[id],onDelete:Cascade)
+  role ServerRole @relation(fields:[serverId,roleId],references:[serverId,id],onDelete:NoAction,onUpdate:NoAction)
+  @@unique([serverId,discordId])
+}
+
+model PlatformAudit {
+  id String @id @default(cuid())
+  actorId String
+  actorName String
+  action String
+  targetType String
+  targetId String
+  reason String
+  result String @default("SUCCESS")
+  correlationId String
+  changes Json @default("{}")
+  createdAt DateTime @default(now())
+  @@index([createdAt,id])
+  @@index([targetType,targetId,createdAt])
+}
+
+model PlatformCommand {
+  id String @id @default(cuid())
+  requestKey String @unique
+  fingerprint String
+  result Json
+  createdAt DateTime @default(now())
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  @@index([identifier])
+}
+
+model PayrollPolicy {
+  id String @id @default(cuid())
+  companyId String
+  targetKey String
+  memberId String?
+  roleId String?
+  mode String
+  rate Int
+  regularMinutes Int
+  overtimeBps Int
+  commissionBps Int
+  revision Int @default(0)
+  updatedAt DateTime @updatedAt
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  member CompanyMember? @relation(fields:[companyId,memberId],references:[companyId,id],onDelete:NoAction,onUpdate:NoAction)
+  role CompanyRole? @relation(fields:[companyId,roleId],references:[companyId,id],onDelete:NoAction,onUpdate:NoAction)
+  @@unique([companyId,targetKey])
+}
+
+model PayrollRun {
+  id String @id @default(cuid())
+  companyId String
+  label String
+  from DateTime @db.Date
+  to DateTime @db.Date
+  status String @default("OPEN")
+  createdBy String
+  createdAt DateTime @default(now())
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  slips PayrollSlip[]
+  @@unique([companyId,id])
+  @@index([companyId,from,to])
+}
+
+model PayrollSlip {
+  id String @id @default(cuid())
+  companyId String
+  runId String
+  memberId String
+  status String @default("DRAFT")
+  revision Int @default(0)
+  employeeName String
+  department String
+  roleName String
+  mode String
+  rate Int
+  regularMinutes Int
+  overtimeBps Int
+  commissionBps Int
+  workedMinutes Int
+  overtimeMinutes Int
+  baseAmount Int
+  overtimeAmount Int
+  salesAmount Int
+  commissionAmount Int
+  bonus Int
+  deduction Int
+  total Int
+  note String
+  sourceHash String
+  preparedBy String
+  approvedBy String?
+  paidBy String?
+  paidAt DateTime?
+  accountLabel String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  companyRun PayrollRun @relation(fields:[companyId,runId],references:[companyId,id],onDelete:Cascade)
+  member CompanyMember @relation(fields:[companyId,memberId],references:[companyId,id],onDelete:NoAction,onUpdate:NoAction)
+  times PayrollTime[]
+  events PayrollEvent[]
+  @@unique([companyId,id])
+  @@unique([companyId,runId,memberId])
+  @@index([companyId,memberId,status])
+}
+
+model PayrollTime {
+  id String @id @default(cuid())
+  companyId String
+  slipId String
+  entryId String
+  reviewId String
+  revision Int
+  minutes Int
+  slip PayrollSlip @relation(fields:[companyId,slipId],references:[companyId,id],onDelete:Cascade)
+  @@unique([companyId,slipId,entryId])
+  @@index([companyId,entryId])
+}
+
+model PayrollEvent {
+  id String @id @default(cuid())
+  companyId String
+  slipId String
+  action String
+  actorId String
+  reason String
+  snapshot Json
+  createdAt DateTime @default(now())
+  slip PayrollSlip @relation(fields:[companyId,slipId],references:[companyId,id],onDelete:Cascade)
+  @@index([companyId,slipId,createdAt])
+}
+
+model PayrollCommand {
+  id String @id @default(cuid())
+  companyId String
+  requestKey String
+  fingerprint String
+  result Json
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  @@unique([companyId,requestKey])
+}
+
+model HrTemplate {
+  id String @id @default(cuid())
+  companyId String
+  kind String
+  name String
+  instructions String @default("")
+  criteria Json @default("[]")
+  archived Boolean @default(false)
+  revision Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  campaigns HrCampaign[]
+  @@unique([companyId,id])
+  @@unique([companyId,kind,name])
+  @@index([companyId,kind,archived,name])
+}
+
+model HrCampaign {
+  id String @id @default(cuid())
+  companyId String
+  templateId String
+  name String
+  templateName String
+  criteria Json
+  from DateTime @db.Date
+  to DateTime @db.Date
+  status String @default("OPEN")
+  revision Int @default(0)
+  createdBy String
+  createdAt DateTime @default(now())
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  template HrTemplate @relation(fields:[companyId,templateId],references:[companyId,id],onDelete:NoAction,onUpdate:NoAction)
+  records HrRecord[]
+  @@unique([companyId,id])
+  @@index([companyId,status,from])
+}
+
+model HrRecord {
+  id String @id @default(cuid())
+  companyId String
+  memberId String
+  kind String
+  campaignId String?
+  title String
+  templateName String
+  employeeName String
+  department String
+  status String @default("DRAFT")
+  revision Int @default(0)
+  occurredAt DateTime
+  content String
+  conclusion String
+  privateNote String @default("")
+  criteria Json @default("[]")
+  goals Json @default("[]")
+  scoreBps Int?
+  createdBy String
+  publishedBy String?
+  publishedAt DateTime?
+  acknowledgedAt DateTime?
+  employeeComment String @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  member CompanyMember @relation(fields:[companyId,memberId],references:[companyId,id],onDelete:NoAction,onUpdate:NoAction)
+  campaign HrCampaign? @relation(fields:[companyId,campaignId],references:[companyId,id],onDelete:NoAction,onUpdate:NoAction)
+  events HrRecordEvent[]
+  @@unique([companyId,id])
+  @@unique([companyId,campaignId,memberId])
+  @@index([companyId,kind,status,occurredAt])
+  @@index([companyId,memberId,kind,publishedAt])
+}
+
+model HrRecordEvent {
+  id String @id @default(cuid())
+  companyId String
+  recordId String
+  action String
+  actorId String
+  actorName String
+  reason String
+  snapshot Json
+  createdAt DateTime @default(now())
+  record HrRecord @relation(fields:[companyId,recordId],references:[companyId,id],onDelete:Cascade)
+  @@index([companyId,recordId,createdAt])
+}
+
+model HrCommand {
+  id String @id @default(cuid())
+  companyId String
+  requestKey String
+  fingerprint String
+  result Json
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  @@unique([companyId,requestKey])
+}
+
+model RateLimit {
+  id          String @id @default(cuid())
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+}
+
+model RPCharacter {
+  id        String @id @default(cuid())
+  userId    String
+  name      String
+  phone     String?
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model RPServer {
+  id          String @id @default(cuid())
+  name        String
+  description String @default("")
+  createdAt   DateTime @default(now())
+  slug        String? @unique
+  logoUrl     String @default("")
+  logoAssetId String? @unique
+  logoAsset LogoAsset? @relation(fields:[logoAssetId],references:[id],onDelete:SetNull)
+  bannerUrl   String @default("")
+  status      String @default("ACTIVE")
+  suspendedUntil DateTime?
+  visibility  String @default("PRIVATE")
+  accessMode  String @default("PRIVATE")
+  maxCompanies Int @default(100)
+  maxUsers    Int @default(1000)
+  revision    Int @default(0)
+  discordGrants ServerDiscordGrant[]
+  communityMembers ServerCommunityMember[]
+  accessRequests ServerAccessRequest[]
+  accessEvents ServerAccessEvent[]
+  accessCommands ServerAccessCommand[]
+  members     ServerMember[]
+  roles       ServerRole[]
+  companies   Company[]
+  auditLogs   ServerAuditLog[]
+}
+
+model ServerCommunityMember {
+  id String @id @default(cuid())
+  serverId String
+  userId String
+  status String @default("ACTIVE")
+  revision Int @default(0)
+  joinedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  server RPServer @relation(fields:[serverId],references:[id],onDelete:Cascade)
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  @@unique([serverId,userId])
+  @@index([serverId,status,id])
+}
+
+model ServerAccessRequest {
+  id String @id @default(cuid())
+  serverId String
+  userId String
+  message String
+  status String @default("PENDING")
+  decisionReason String @default("")
+  revision Int @default(0)
+  requestedAt DateTime @default(now())
+  decidedAt DateTime?
+  server RPServer @relation(fields:[serverId],references:[id],onDelete:Cascade)
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  @@unique([serverId,userId])
+  @@index([serverId,status,requestedAt,id])
+}
+
+model ServerAccessEvent {
+  id String @id @default(cuid())
+  serverId String
+  userId String
+  actorId String
+  actorName String
+  kind String
+  reason String
+  createdAt DateTime @default(now())
+  server RPServer @relation(fields:[serverId],references:[id],onDelete:Cascade)
+  @@index([serverId,userId,createdAt,id])
+}
+
+model ServerAccessCommand {
+  id String @id @default(cuid())
+  serverId String
+  requestKey String @unique
+  fingerprint String
+  result Json
+  createdAt DateTime @default(now())
+  server RPServer @relation(fields:[serverId],references:[id],onDelete:Cascade)
+}
+
+model ServerAuditLog {
+  id        String @id @default(cuid())
+  serverId  String
+  actorId   String
+  actorName String
+  action    String
+  entityId  String?
+  createdAt DateTime @default(now())
+  server    RPServer @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  @@index([serverId, createdAt])
+}
+
+model ServerMember {
+  id       String @id @default(cuid())
+  serverId String
+  userId   String
+  roleId   String
+  status   String @default("ACTIVE")
+  expiresAt DateTime?
+  server   RPServer @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     ServerRole @relation(fields: [serverId, roleId], references: [serverId, id])
+  @@unique([serverId, userId])
+}
+
+model ServerRole {
+  id          String @id @default(cuid())
+  serverId    String
+  name        String
+  permissions String[]
+  server      RPServer @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  members     ServerMember[]
+  discordGrants ServerDiscordGrant[]
+  @@unique([serverId, id])
+}
+
+model Company {
+  uploadTransfers UploadTransfer[]
+  id          String @id @default(cuid())
+  name        String
+  slug        String @unique
+  description String @default("")
+  sector      String @default("Garage")
+  logoUrl String @default("")
+  logoAssetId String? @unique
+  logoAsset LogoAsset? @relation(fields:[logoAssetId],references:[id],onDelete:SetNull)
+  serverId    String?
+  currency    String @default("USD")
+  expenseThreshold Int @default(100000)
+  publicEnabled Boolean @default(false)
+  accessStatus String @default("ACTIVE")
+  suspendedUntil DateTime?
+  adminRevision Int @default(0)
+  createdAt   DateTime @default(now())
+  server      RPServer? @relation(fields: [serverId], references: [id])
+  members     CompanyMember[]
+  roles       CompanyRole[]
+  modules     CompanyModule[]
+  invitations Invitation[]
+  departments Department[]
+  products    Product[]
+  sales       Sale[]
+  entries     FinancialEntry[]
+  financeAccounts FinanceAccount[]
+  financeReconciliations FinanceReconciliation[]
+  stockBatches StockBatch[]
+  financeCategories FinanceCategory[]
+  financeOperations FinanceOperation[]
+  expenses    Expense[]
+  expenseClaims ExpenseClaim[]
+  shifts      Shift[]
+  shiftSeries ShiftSeries[]
+  availabilities MemberAvailability[]
+  leaveTypes LeaveType[]
+  scheduleCommands ScheduleCommand[]
+  recruitmentJobs RecruitmentJob[]
+  recruitmentCommands RecruitmentCommand[]
+  timeEntries TimeEntry[]
+  leaveRequests LeaveRequest[]
+  tasks       Task[]
+  taskStatuses TaskStatus[]
+  taskCommands TaskCommand[]
+  announcements Announcement[]
+  announcementCommands AnnouncementCommand[]
+  calendarEvents CalendarEvent[]
+  calendarSeries CalendarSeries[]
+  calendarCommands CalendarCommand[]
+  auditLogs   AuditLog[]
+  customers   Customer[]
+  billingDocuments BillingDocument[]
+  suppliers   Supplier[]
+  purchaseOrders PurchaseOrder[]
+  purchaseReceipts PurchaseReceipt[]
+  stockWarehouses StockWarehouse[]
+  documents   Document[]
+  documentFolders DocumentFolder[]
+  documentCommands DocumentCommand[]
+  chatThreads ChatThread[]
+  chatCommands ChatCommand[]
+  equipmentItems EquipmentItem[]
+  utilityCommands UtilityCommand[]
+  contracts   Contract[]
+  automations Automation[]
+  subscription Subscription?
+  payrollPolicies PayrollPolicy[]
+  payrollRuns PayrollRun[]
+  payrollCommands PayrollCommand[]
+  hrTemplates HrTemplate[]
+  hrCampaigns HrCampaign[]
+  hrRecords HrRecord[]
+  hrCommands HrCommand[]
+}
+
+model CompanyMember {
+  equipmentCustody EquipmentItem[]
+  statisticsLayout StatisticsLayout?
+  chatParticipants ChatParticipant[]
+  calendarInvites CalendarInvite[]
+  announcementReads AnnouncementRead[]
+  assignedTasks Task[] @relation("TaskAssignee")
+  id          String @id @default(cuid())
+  companyId   String
+  userId      String
+  roleId      String
+  characterName String
+  department  String @default("Équipe principale")
+  status      String @default("ACTIVE")
+  hiredAt     DateTime @default(now())
+  salary      Int @default(0)
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user        User @relation(fields: [userId], references: [id])
+  role        CompanyRole @relation(fields: [companyId, roleId], references: [companyId, id])
+  shifts      Shift[]
+  timeEntries TimeEntry[]
+  leaves      LeaveRequest[]
+  profile     EmployeeProfile?
+  career      EmployeeEvent[]
+  availabilities MemberAvailability[]
+  payrollPolicies PayrollPolicy[]
+  payrollSlips PayrollSlip[]
+  hrRecords HrRecord[]
+  @@unique([companyId, userId])
+  @@unique([companyId, id])
+  @@index([companyId, status])
+}
+
+model EmployeeProfile {
+  id          String @id @default(cuid())
+  companyId   String
+  memberId    String
+  phone       String @default("")
+  jobTitle    String @default("")
+  biography   String @default("")
+  updatedAt   DateTime @updatedAt
+  member      CompanyMember @relation(fields: [companyId, memberId], references: [companyId, id], onDelete: Cascade)
+  @@unique([companyId, memberId])
+}
+
+model EmployeeEvent {
+  id          String @id @default(cuid())
+  companyId   String
+  memberId    String
+  kind        String
+  title       String
+  content     String
+  actorId     String
+  actorName   String
+  createdAt   DateTime @default(now())
+  member      CompanyMember @relation(fields: [companyId, memberId], references: [companyId, id], onDelete: Cascade)
+  @@index([companyId, memberId, createdAt])
+}
+
+model Department {
+  id        String @id @default(cuid())
+  companyId String
+  name      String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  @@unique([companyId, name])
+}
+
+model CompanyRole {
+  id          String @id @default(cuid())
+  companyId   String
+  name        String
+  permissions String[]
+  isOwner     Boolean @default(false)
+  position    Int @default(100)
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  members     CompanyMember[]
+  invitations Invitation[]
+  payrollPolicies PayrollPolicy[]
+  @@unique([companyId, id])
+  @@unique([companyId, name])
+  @@index([companyId, position])
+}
+
+model CompanyModule {
+  id        String @id @default(cuid())
+  companyId String
+  key       String
+  enabled   Boolean @default(true)
+  settings  Json @default("{}")
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  @@unique([companyId, key])
+}
+
+model Invitation {
+  id        String @id @default(cuid())
+  companyId String
+  email     String
+  roleId    String
+  tokenHash String @unique
+  status    String @default("PENDING")
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  role      CompanyRole @relation(fields: [companyId, roleId], references: [companyId, id])
+  @@index([email, status])
+}
+
+model Shift {
+  id        String @id @default(cuid())
+  companyId String
+  memberId  String
+  title     String
+  start     DateTime
+  end       DateTime
+  status String @default("SCHEDULED")
+  revision Int @default(0)
+  cancelReason String?
+  cancelledBy String?
+  seriesId String?
+  series ShiftSeries? @relation(fields:[companyId,seriesId],references:[companyId,id],onDelete:NoAction,onUpdate:NoAction)
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  member    CompanyMember @relation(fields: [companyId, memberId], references: [companyId, id])
+  @@index([companyId, start])
+}
+
+model ShiftSeries {
+  id String @id @default(cuid())
+  companyId String
+  title String
+  actorId String
+  createdAt DateTime @default(now())
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  shifts Shift[]
+  @@unique([companyId,id])
+}
+
+model RecruitmentJob {
+  id String @id @default(cuid())
+  companyId String
+  title String
+  description String
+  requirements String @default("")
+  location String @default("")
+  contractType String @default("OTHER")
+  positions Int @default(1)
+  status String @default("DRAFT")
+  revision Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  applications JobApplication[]
+  @@unique([companyId,id])
+  @@index([companyId,status,createdAt])
+}
+
+model JobApplication {
+  id String @id @default(cuid())
+  companyId String
+  jobId String
+  userId String
+  jobTitle String
+  characterName String
+  phone String @default("")
+  motivation String
+  availability String @default("")
+  status String @default("SUBMITTED")
+  revision Int @default(0)
+  interviewAt DateTime?
+  interviewDetails String @default("")
+  decisionReason String @default("")
+  offeredRoleId String?
+  offeredRoleName String?
+  offeredDepartment String?
+  offeredSalary Int?
+  offeredBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  job RecruitmentJob @relation(fields:[companyId,jobId],references:[companyId,id],onDelete:Cascade)
+  user User @relation(fields:[userId],references:[id])
+  events RecruitmentEvent[]
+  @@unique([companyId,id])
+  @@unique([jobId,userId])
+  @@index([companyId,status,createdAt])
+  @@index([userId,createdAt])
+}
+
+model RecruitmentEvent {
+  id String @id @default(cuid())
+  companyId String
+  applicationId String
+  kind String
+  content String
+  details Json @default("{}")
+  visibleToCandidate Boolean @default(false)
+  actorId String
+  actorName String
+  createdAt DateTime @default(now())
+  application JobApplication @relation(fields:[companyId,applicationId],references:[companyId,id],onDelete:Cascade)
+  @@index([companyId,applicationId,createdAt])
+}
+
+model RecruitmentCommand {
+  id String @id @default(cuid())
+  companyId String
+  requestKey String
+  fingerprint String
+  resultId String
+  revision Int
+  createdAt DateTime @default(now())
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  @@unique([companyId,requestKey])
+}
+
+model MemberAvailability {
+  id String @id @default(cuid())
+  companyId String
+  memberId String
+  start DateTime
+  end DateTime
+  kind String
+  notes String @default("")
+  active Boolean @default(true)
+  revision Int @default(0)
+  cancelReason String?
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  member CompanyMember @relation(fields:[companyId,memberId],references:[companyId,id])
+  @@index([companyId,memberId,start])
+}
+
+model LeaveType {
+  id String @id @default(cuid())
+  companyId String
+  code String
+  name String
+  archived Boolean @default(false)
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  leaves LeaveRequest[]
+  @@unique([companyId,id])
+  @@unique([companyId,code])
+}
+
+model ScheduleCommand {
+  id String @id @default(cuid())
+  companyId String
+  requestKey String
+  fingerprint String
+  resultId String
+  revision Int @default(0)
+  createdAt DateTime @default(now())
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  @@unique([companyId,requestKey])
+}
+
+model TimeEntry {
+  id        String @id @default(cuid())
+  companyId String
+  memberId  String
+  start     DateTime @default(now())
+  end       DateTime?
+  revision Int @default(0)
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  member    CompanyMember @relation(fields: [companyId, memberId], references: [companyId, id])
+  pauses TimePause[]
+  corrections TimeCorrection[]
+  reviews TimeReview[]
+  commands TimeCommand[]
+  @@unique([companyId,id])
+  @@index([companyId, memberId, end])
+}
+
+model TimePause {
+  id String @id @default(cuid())
+  companyId String
+  entryId String
+  start DateTime @default(now())
+  end DateTime?
+  actorId String
+  entry TimeEntry @relation(fields:[companyId,entryId],references:[companyId,id],onDelete:Cascade)
+  @@index([companyId,entryId])
+}
+
+model TimeCorrection {
+  id String @id @default(cuid())
+  companyId String
+  entryId String
+  revision Int
+  start DateTime
+  end DateTime
+  pauseMinutes Int
+  reason String
+  actorId String
+  createdAt DateTime @default(now())
+  entry TimeEntry @relation(fields:[companyId,entryId],references:[companyId,id],onDelete:Cascade)
+  @@unique([companyId,entryId,revision])
+}
+
+model TimeReview {
+  id String @id @default(cuid())
+  companyId String
+  entryId String
+  revision Int
+  status String
+  reason String
+  actorId String
+  workedMinutes Int
+  start DateTime
+  end DateTime
+  createdAt DateTime @default(now())
+  entry TimeEntry @relation(fields:[companyId,entryId],references:[companyId,id],onDelete:Cascade)
+  @@unique([companyId,entryId,revision])
+}
+
+model TimeCommand {
+  id String @id @default(cuid())
+  companyId String
+  entryId String
+  requestKey String
+  fingerprint String
+  revision Int
+  createdAt DateTime @default(now())
+  entry TimeEntry @relation(fields:[companyId,entryId],references:[companyId,id],onDelete:Cascade)
+  @@unique([companyId,requestKey])
+}
+
+model LeaveRequest {
+  id        String @id @default(cuid())
+  companyId String
+  memberId  String
+  start     DateTime
+  end       DateTime
+  reason    String
+  status    String @default("PENDING")
+  decisionReason String?
+  decidedBy String?
+  decidedAt DateTime?
+  cancelledAt DateTime?
+  revision Int @default(0)
+  cancelReason String?
+  typeId String?
+  typeName String?
+  type LeaveType? @relation(fields:[companyId,typeId],references:[companyId,id],onDelete:NoAction,onUpdate:NoAction)
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  member    CompanyMember @relation(fields: [companyId, memberId], references: [companyId, id])
+  @@index([companyId, status])
+}
+
+model Product {
+  id          String @id @default(cuid())
+  companyId   String
+  name        String
+  sku         String
+  category    String @default("Prestations")
+  price       Int
+  cost        Int @default(0)
+  stock       Int @default(0)
+  stockRevision Int @default(0)
+  threshold   Int @default(5)
+  trackStock  Boolean @default(true)
+  archived    Boolean @default(false)
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  movements   InventoryMovement[]
+  saleItems   SaleItem[]
+  purchaseItems PurchaseItem[]
+  countLines StockCountLine[]
+  warehouseStocks WarehouseStock[]
+  @@unique([companyId, sku])
+  @@unique([companyId, id])
+  @@index([companyId, archived])
+}
+
+model InventoryMovement {
+  id        String @id @default(cuid())
+  companyId String
+  productId String
+  quantity  Int
+  reason    String
+  actorId   String
+  createdAt DateTime @default(now())
+  product   Product @relation(fields: [companyId, productId], references: [companyId, id])
+  kind String?
+  occurredAt DateTime?
+  unitCost Int?
+  sourceId String?
+  batchId String?
+  reversalOfId String?
+  warehouseId String?
+  warehouseLabel String?
+  warehouse StockWarehouse? @relation(fields:[companyId,warehouseId],references:[companyId,id],onDelete:NoAction,onUpdate:NoAction)
+  batch StockBatch? @relation(fields: [companyId, batchId], references: [companyId, id], onDelete: NoAction, onUpdate: NoAction)
+  reversalOf InventoryMovement? @relation("StockReversal",fields:[companyId,reversalOfId],references:[companyId,id],onDelete:NoAction,onUpdate:NoAction)
+  reversedBy InventoryMovement[] @relation("StockReversal")
+  @@unique([companyId, id])
+  @@unique([companyId, reversalOfId])
+  @@index([companyId, createdAt])
+}
+
+model StockBatch {
+  id String @id @default(cuid())
+  companyId String
+  requestKey String
+  fingerprint String
+  kind String
+  status String @default("DRAFT")
+  label String
+  actorId String
+  createdAt DateTime @default(now())
+  postedAt DateTime?
+  decidedBy String?
+  revision Int @default(0)
+  reason String @default("")
+  sourceWarehouseId String?
+  destinationWarehouseId String?
+  sourceLabel String?
+  destinationLabel String?
+  sourceWarehouse StockWarehouse? @relation("TransferSource",fields:[companyId,sourceWarehouseId],references:[companyId,id],onDelete:NoAction,onUpdate:NoAction)
+  destinationWarehouse StockWarehouse? @relation("TransferDestination",fields:[companyId,destinationWarehouseId],references:[companyId,id],onDelete:NoAction,onUpdate:NoAction)
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  lines StockCountLine[]
+  movements InventoryMovement[]
+  @@unique([companyId,id])
+  @@unique([companyId,requestKey])
+  @@index([companyId,createdAt])
+}
+
+model StockWarehouse {
+  id String @id @default(cuid())
+  companyId String
+  code String
+  name String
+  archived Boolean @default(false)
+  createdAt DateTime @default(now())
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  stocks WarehouseStock[]
+  movements InventoryMovement[]
+  transfersFrom StockBatch[] @relation("TransferSource")
+  transfersTo StockBatch[] @relation("TransferDestination")
+  @@unique([companyId,id])
+  @@unique([companyId,code])
+}
+
+model WarehouseStock {
+  id String @id @default(cuid())
+  companyId String
+  warehouseId String
+  productId String
+  quantity Int @default(0)
+  warehouse StockWarehouse @relation(fields:[companyId,warehouseId],references:[companyId,id],onDelete:NoAction,onUpdate:NoAction)
+  product Product @relation(fields:[companyId,productId],references:[companyId,id],onDelete:NoAction,onUpdate:NoAction)
+  @@unique([companyId,warehouseId,productId])
+  @@index([companyId,productId])
+}
+
+model StockCountLine {
+  id String @id @default(cuid())
+  companyId String
+  batchId String
+  productId String
+  name String
+  sku String
+  expected Int
+  stockRevision Int
+  counted Int?
+  reason String @default("")
+  batch StockBatch @relation(fields:[companyId,batchId],references:[companyId,id],onDelete:Cascade)
+  product Product @relation(fields:[companyId,productId],references:[companyId,id],onDelete:NoAction,onUpdate:NoAction)
+  @@unique([batchId,productId])
+}
+
+model Sale {
+  id          String @id @default(cuid())
+  companyId   String
+  number      String
+  requestKey  String
+  customer    String
+  sellerId    String
+  sellerName  String
+  payment     String
+  total       Int
+  discountBps Int @default(0)
+  channel     String @default("SALES")
+  requestHash String?
+  cancelledAt DateTime?
+  cancelReason String?
+  status      String @default("COMPLETED")
+  createdAt   DateTime @default(now())
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  items       SaleItem[]
+  @@unique([companyId, number])
+  @@unique([companyId, requestKey])
+  @@unique([companyId, id])
+  @@index([companyId, createdAt])
+  @@index([companyId, sellerId, createdAt])
+}
+
+model SaleItem {
+  id        String @id @default(cuid())
+  companyId String
+  saleId    String
+  productId String
+  name      String
+  quantity  Int
+  unitPrice Int
+  sale      Sale @relation(fields: [companyId, saleId], references: [companyId, id], onDelete: Cascade)
+  product   Product @relation(fields: [companyId, productId], references: [companyId, id])
+}
+
+model FinancialEntry {
+  id        String @id @default(cuid())
+  companyId String
+  amount    Int
+  kind      String
+  label     String
+  sourceId  String
+  actorId   String
+  createdAt DateTime @default(now())
+  occurredAt DateTime?
+  accountId String?
+  categoryId String?
+  operationId String?
+  reversalOfId String?
+  effect String?
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  account FinanceAccount? @relation(fields: [companyId, accountId], references: [companyId, id], onDelete: NoAction, onUpdate: NoAction)
+  category FinanceCategory? @relation(fields: [companyId, categoryId], references: [companyId, id], onDelete: NoAction, onUpdate: NoAction)
+  operation FinanceOperation? @relation(fields: [companyId, operationId], references: [companyId, id], onDelete: NoAction, onUpdate: NoAction)
+  reversalOf FinancialEntry? @relation("LedgerReversal", fields: [companyId, reversalOfId], references: [companyId, id], onDelete: NoAction, onUpdate: NoAction)
+  reversals FinancialEntry[] @relation("LedgerReversal")
+  @@unique([companyId, kind, sourceId])
+  @@unique([companyId, id])
+  @@unique([companyId, reversalOfId])
+  @@index([companyId, createdAt])
+  @@index([companyId, accountId, occurredAt])
+  @@index([companyId, operationId])
+}
+
+model FinanceAccount {
+  id String @id @default(cuid())
+  companyId String
+  name String
+  type String
+  isDefault Boolean @default(false)
+  archived Boolean @default(false)
+  createdAt DateTime @default(now())
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  entries FinancialEntry[]
+  operations FinanceOperation[] @relation("OperationAccount")
+  incomingOperations FinanceOperation[] @relation("OperationTarget")
+  reconciliations FinanceReconciliation[]
+  @@unique([companyId, id])
+  @@unique([companyId, name])
+}
+
+model FinanceCategory {
+  id String @id @default(cuid())
+  companyId String
+  name String
+  kind String
+  archived Boolean @default(false)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  entries FinancialEntry[]
+  operations FinanceOperation[]
+  @@unique([companyId, id])
+  @@unique([companyId, name])
+}
+
+model FinanceReconciliation {
+  id String @id @default(cuid())
+  companyId String
+  accountId String?
+  requestKey String
+  fingerprint String
+  asOf DateTime @db.Date
+  observed Int
+  ledgerBalance BigInt
+  entryCount Int
+  note String
+  actorId String
+  createdAt DateTime @default(now())
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  account FinanceAccount? @relation(fields: [companyId, accountId], references: [companyId, id], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([companyId, requestKey])
+  @@index([companyId, createdAt])
+}
+
+model FinanceOperation {
+  id String @id @default(cuid())
+  companyId String
+  requestKey String
+  fingerprint String
+  revision Int @default(0)
+  kind String
+  status String @default("DRAFT")
+  label String
+  amount Int
+  accountId String?
+  targetAccountId String?
+  categoryId String?
+  payment String
+  occurredAt DateTime
+  createdAt DateTime @default(now())
+  postedAt DateTime?
+  createdBy String
+  decidedBy String?
+  reason String @default("")
+  reversesId String?
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  account FinanceAccount? @relation("OperationAccount", fields: [companyId, accountId], references: [companyId, id], onDelete: NoAction, onUpdate: NoAction)
+  targetAccount FinanceAccount? @relation("OperationTarget", fields: [companyId, targetAccountId], references: [companyId, id], onDelete: NoAction, onUpdate: NoAction)
+  category FinanceCategory? @relation(fields: [companyId, categoryId], references: [companyId, id], onDelete: NoAction, onUpdate: NoAction)
+  entries FinancialEntry[]
+  reverses FinanceOperation? @relation("OperationReversal", fields: [companyId, reversesId], references: [companyId, id], onDelete: NoAction, onUpdate: NoAction)
+  reversedBy FinanceOperation[] @relation("OperationReversal")
+  @@unique([companyId, id])
+  @@unique([companyId, requestKey])
+  @@unique([companyId, reversesId])
+  @@index([companyId, status, createdAt])
+}
+
+model Expense {
+  id        String @id @default(cuid())
+  companyId String
+  label     String
+  amount    Int
+  category  String
+  status    String @default("PENDING")
+  actorId   String
+  createdAt DateTime @default(now())
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  claim ExpenseClaim?
+  @@index([companyId, status])
+}
+
+model Task {
+  id        String @id @default(cuid())
+  companyId String
+  title     String
+  priority  String @default("NORMAL")
+  status    String @default("TODO")
+  dueAt     DateTime?
+  createdAt DateTime @default(now())
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  description String @default("")
+  revision Int @default(0)
+  archived Boolean @default(false)
+  assigneeId String?
+  assignee CompanyMember? @relation("TaskAssignee", fields: [companyId, assigneeId], references: [companyId, id], onDelete: NoAction, onUpdate: NoAction)
+  createdBy String?
+  updatedAt DateTime @default(now()) @updatedAt
+  checklist TaskChecklistItem[]
+  comments TaskComment[]
+  events TaskEvent[]
+  @@unique([companyId, id])
+  @@index([companyId, archived, status, dueAt])
+  @@index([companyId, assigneeId, archived])
+  @@index([companyId, status])
+}
+
+model CalendarSeries {
+  id String @id @default(cuid())
+  companyId String
+  occurrences Int
+  intervalWeeks Int
+  revision Int @default(0)
+  createdBy String
+  createdAt DateTime @default(now())
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  events CalendarEvent[]
+  @@unique([companyId, id])
+}
+
+model CalendarEvent {
+  id String @id @default(cuid())
+  companyId String
+  seriesId String?
+  title String
+  description String @default("")
+  location String @default("")
+  kind String @default("MEETING")
+  visibility String @default("INVITEES")
+  status String @default("SCHEDULED")
+  start DateTime
+  end DateTime
+  revision Int @default(0)
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  series CalendarSeries? @relation(fields: [companyId, seriesId], references: [companyId, id], onDelete: NoAction, onUpdate: NoAction)
+  invites CalendarInvite[]
+  history CalendarHistory[]
+  @@unique([companyId, id])
+  @@index([companyId, start, end])
+  @@index([companyId, seriesId, start])
+}
+
+model CalendarInvite {
+  id String @id @default(cuid())
+  companyId String
+  eventId String
+  memberId String
+  memberName String
+  active Boolean @default(true)
+  response String @default("PENDING")
+  responseNote String @default("")
+  respondedAt DateTime?
+  attendance String @default("UNKNOWN")
+  attendanceNote String @default("")
+  attendanceAt DateTime?
+  revision Int @default(0)
+  event CalendarEvent @relation(fields: [companyId, eventId], references: [companyId, id], onDelete: Cascade)
+  member CompanyMember @relation(fields: [companyId, memberId], references: [companyId, id], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([companyId, eventId, memberId])
+  @@index([companyId, memberId, active])
+}
+
+model CalendarHistory {
+  id String @id @default(cuid())
+  companyId String
+  eventId String
+  actorId String
+  actorName String
+  action String
+  reason String
+  snapshot Json
+  createdAt DateTime @default(now())
+  event CalendarEvent @relation(fields: [companyId, eventId], references: [companyId, id], onDelete: Cascade)
+  @@index([companyId, eventId, createdAt])
+}
+
+model CalendarCommand {
+  id String @id @default(cuid())
+  companyId String
+  requestKey String
+  fingerprint String
+  result Json
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  @@unique([companyId, requestKey])
+}
+
+model Announcement {
+  id String @id @default(cuid())
+  companyId String
+  title String
+  body String
+  priority String @default("NORMAL")
+  scope String @default("ALL")
+  department String?
+  status String @default("DRAFT")
+  pinned Boolean @default(false)
+  revision Int @default(0)
+  createdBy String
+  authorName String
+  publishedBy String?
+  publisherName String?
+  publishedAt DateTime?
+  startsAt DateTime?
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  reads AnnouncementRead[]
+  events AnnouncementEvent[]
+  @@unique([companyId, id])
+  @@index([companyId, status, startsAt])
+  @@index([companyId, department, status])
+}
+
+model AnnouncementRead {
+  id String @id @default(cuid())
+  companyId String
+  announcementId String
+  memberId String
+  memberName String
+  department String
+  readAt DateTime @default(now())
+  announcement Announcement @relation(fields: [companyId, announcementId], references: [companyId, id], onDelete: Cascade)
+  member CompanyMember @relation(fields: [companyId, memberId], references: [companyId, id], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([companyId, announcementId, memberId])
+  @@index([companyId, announcementId, readAt])
+}
+
+model AnnouncementEvent {
+  id String @id @default(cuid())
+  companyId String
+  announcementId String
+  actorId String
+  actorName String
+  action String
+  reason String
+  snapshot Json
+  createdAt DateTime @default(now())
+  announcement Announcement @relation(fields: [companyId, announcementId], references: [companyId, id], onDelete: Cascade)
+  @@index([companyId, announcementId, createdAt])
+}
+
+model AnnouncementCommand {
+  id String @id @default(cuid())
+  companyId String
+  requestKey String
+  fingerprint String
+  result Json
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  @@unique([companyId, requestKey])
+}
+
+model TaskStatus {
+  id String @id @default(cuid())
+  companyId String
+  name String
+  position Int @default(0)
+  archived Boolean @default(false)
+  revision Int @default(0)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  @@unique([companyId, name])
+  @@index([companyId, archived, position])
+}
+
+model TaskChecklistItem {
+  id String @id @default(cuid())
+  companyId String
+  taskId String
+  title String
+  done Boolean @default(false)
+  position Int
+  task Task @relation(fields: [companyId, taskId], references: [companyId, id], onDelete: Cascade)
+  @@index([companyId, taskId, position])
+}
+
+model TaskComment {
+  id String @id @default(cuid())
+  companyId String
+  taskId String
+  authorId String
+  authorName String
+  body String
+  createdAt DateTime @default(now())
+  task Task @relation(fields: [companyId, taskId], references: [companyId, id], onDelete: Cascade)
+  @@index([companyId, taskId, createdAt])
+}
+
+model TaskEvent {
+  id String @id @default(cuid())
+  companyId String
+  taskId String
+  actorId String
+  actorName String
+  action String
+  reason String
+  snapshot Json
+  createdAt DateTime @default(now())
+  task Task @relation(fields: [companyId, taskId], references: [companyId, id], onDelete: Cascade)
+  @@index([companyId, taskId, createdAt])
+}
+
+model TaskCommand {
+  id String @id @default(cuid())
+  companyId String
+  requestKey String
+  fingerprint String
+  result Json
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  @@unique([companyId, requestKey])
+}
+
+model ChatThread {
+  id String @id @default(cuid())
+  companyId String
+  kind String
+  title String
+  ownerMemberId String
+  revision Int @default(0)
+  lastSequence Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  participants ChatParticipant[]
+  messages ChatMessage[]
+  @@unique([companyId,id])
+  @@index([companyId,updatedAt,id])
+}
+
+model ChatParticipant {
+  companyId String
+  threadId String
+  memberId String
+  active Boolean @default(true)
+  archived Boolean @default(false)
+  lastReadSequence Int @default(0)
+  thread ChatThread @relation(fields:[companyId,threadId],references:[companyId,id],onDelete:Cascade,map:"ChatParticipant_thread_fkey")
+  member CompanyMember @relation(fields:[companyId,memberId],references:[companyId,id],onDelete:Cascade,map:"ChatParticipant_member_fkey")
+  @@id([threadId,memberId])
+  @@index([companyId,memberId,active,archived])
+}
+
+model ChatMessage {
+  id String @id @default(cuid())
+  companyId String
+  threadId String
+  sequence Int
+  senderMemberId String
+  senderName String
+  body String
+  createdAt DateTime @default(now())
+  thread ChatThread @relation(fields:[companyId,threadId],references:[companyId,id],onDelete:Cascade,map:"ChatMessage_thread_fkey")
+  @@unique([threadId,sequence])
+  @@index([companyId,threadId,createdAt])
+}
+
+model ChatCommand {
+  id String @id @default(cuid())
+  companyId String
+  requestKey String
+  fingerprint String
+  result Json
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  @@unique([companyId,requestKey])
+}
+
+model Customer {
+  id        String @id @default(cuid())
+  companyId String
+  name      String
+  phone     String?
+  notes     String @default("")
+  email     String @default("")
+  segment   String @default("Particulier")
+  archived  Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  billingDocuments BillingDocument[]
+  @@unique([companyId, id])
+  @@index([companyId])
+}
+
+// Documents RP: immutable after issue. Payment and cancellation append ledger entries.
+model BillingDocument {
+  id           String @id @default(cuid())
+  companyId    String
+  customerId   String
+  number       String
+  kind         String
+  status       String @default("DRAFT")
+  customerName String
+  customerContact String @default("")
+  notes        String @default("")
+  discountBps  Int @default(0)
+  subtotal     Int
+  total        Int
+  validUntil   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  issuedAt     DateTime?
+  paidAt       DateTime?
+  cancelledAt  DateTime?
+  sourceId     String?
+  company      Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer     Customer @relation(fields: [companyId, customerId], references: [companyId, id])
+  source       BillingDocument? @relation("QuoteConversion", fields: [companyId, sourceId], references: [companyId, id], onDelete: NoAction, onUpdate: NoAction)
+  converted    BillingDocument[] @relation("QuoteConversion")
+  items        BillingItem[]
+  @@unique([companyId, id])
+  @@unique([companyId, number])
+  @@unique([companyId, sourceId])
+  @@index([companyId, kind, createdAt])
+}
+
+model BillingItem {
+  id         String @id @default(cuid())
+  companyId  String
+  documentId String
+  position   Int
+  label      String
+  quantity   Int
+  unitPrice  Int
+  total      Int
+  document   BillingDocument @relation(fields: [companyId, documentId], references: [companyId, id], onDelete: Cascade)
+  @@unique([documentId, position])
+}
+
+model Supplier {
+  id        String @id @default(cuid())
+  companyId String
+  name      String
+  contact   String?
+  email     String @default("")
+  phone     String @default("")
+  notes     String @default("")
+  archived  Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  purchaseOrders PurchaseOrder[]
+  @@unique([companyId, id])
+  @@index([companyId])
+}
+
+model PurchaseOrder {
+  id           String @id @default(cuid())
+  companyId    String
+  supplierId   String
+  supplierName String
+  number       String
+  status       String @default("DRAFT")
+  notes        String @default("")
+  total        Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  orderedAt    DateTime?
+  receivedAt   DateTime?
+  receivedBy   String?
+  company      Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  supplier     Supplier @relation(fields: [companyId, supplierId], references: [companyId, id])
+  items        PurchaseItem[]
+  receipts     PurchaseReceipt[]
+  @@unique([companyId, id])
+  @@unique([companyId, number])
+  @@index([companyId, status, createdAt])
+}
+
+model PurchaseItem {
+  id         String @id @default(cuid())
+  companyId  String
+  orderId    String
+  productId  String
+  name       String
+  quantity   Int
+  receivedQuantity Int @default(0)
+  unitCost   Int
+  total      Int
+  order      PurchaseOrder @relation(fields: [companyId, orderId], references: [companyId, id], onDelete: Cascade)
+  product    Product @relation(fields: [companyId, productId], references: [companyId, id])
+  receiptLines PurchaseReceiptLine[]
+  @@unique([companyId, id])
+  @@unique([orderId, productId])
+}
+
+model PurchaseReceipt {
+  id String @id @default(cuid())
+  companyId String
+  orderId String
+  requestKey String
+  fingerprint String
+  reference String @default("")
+  notes String @default("")
+  occurredAt DateTime
+  createdAt DateTime @default(now())
+  actorId String
+  total Int
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  order PurchaseOrder @relation(fields: [companyId, orderId], references: [companyId, id], onDelete: Cascade)
+  lines PurchaseReceiptLine[]
+  @@unique([companyId, id])
+  @@unique([companyId, requestKey])
+  @@index([companyId, orderId, createdAt])
+}
+
+model PurchaseReceiptLine {
+  id String @id @default(cuid())
+  companyId String
+  receiptId String
+  itemId String
+  name String
+  quantity Int
+  unitCost Int
+  receipt PurchaseReceipt @relation(fields: [companyId, receiptId], references: [companyId, id], onDelete: Cascade)
+  item PurchaseItem @relation(fields: [companyId, itemId], references: [companyId, id], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([receiptId, itemId])
+}
+
+model Document {
+  id        String @id @default(cuid())
+  companyId String
+  name      String
+  storageKey String @unique
+  mimeType  String
+  size      Int
+  folderId String?
+  audience String @default("TEAM")
+  targetType String?
+  targetId String?
+  archived Boolean @default(false)
+  revision Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  folder DocumentFolder? @relation(fields: [companyId, folderId], references: [companyId, id], onDelete: NoAction, onUpdate: NoAction)
+  versions DocumentVersion[]
+  events DocumentEvent[]
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  @@unique([companyId, id])
+  @@index([companyId])
+  @@index([companyId, archived, updatedAt])
+  @@index([companyId, targetType, targetId, archived])
+}
+
+model UploadTransfer {
+  id String @id @default(uuid())
+  companyId String
+  actorId String
+  requestKey String
+  kind String
+  metadata Json
+  fingerprint String
+  mimeType String
+  totalSize Int
+  digest String
+  nextPart Int @default(0)
+  partDigests String[] @default([])
+  data Bytes
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  completedAt DateTime?
+  result Json?
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  actor User @relation(fields:[actorId],references:[id],onDelete:Cascade)
+  @@unique([companyId,actorId,requestKey])
+  @@index([expiresAt])
+}
+
+model ExpenseClaim {
+  id String @id @default(cuid())
+  companyId String
+  actorId String
+  actorName String
+  label String
+  category String
+  description String
+  amount Int
+  spentOn DateTime @db.Date
+  status String @default("DRAFT")
+  revision Int @default(0)
+  submittedAt DateTime?
+  decidedAt DateTime?
+  decidedBy String?
+  paidAt DateTime?
+  paymentReference String?
+  expenseId String? @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  expense Expense? @relation(fields: [expenseId], references: [id], onDelete: NoAction)
+  events ExpenseClaimEvent[]
+  @@unique([companyId, id])
+  @@index([companyId, actorId, status, createdAt])
+}
+
+model ExpenseClaimEvent {
+  id String @id @default(cuid())
+  companyId String
+  claimId String
+  action String
+  reason String
+  actorId String
+  actorName String
+  evidence Json @default("[]")
+  createdAt DateTime @default(now())
+  claim ExpenseClaim @relation(fields: [companyId, claimId], references: [companyId, id], onDelete: Cascade)
+  @@index([companyId, claimId, createdAt])
+}
+
+model DocumentFolder {
+  id String @id @default(cuid())
+  companyId String
+  name String
+  revision Int @default(0)
+  archived Boolean @default(false)
+  createdAt DateTime @default(now())
+  documents Document[]
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  @@unique([companyId, id])
+  @@unique([companyId, name])
+}
+
+model DocumentCommand {
+  id String @id @default(cuid())
+  companyId String
+  requestKey String
+  fingerprint String
+  result Json
+  createdAt DateTime @default(now())
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  @@unique([companyId, requestKey])
+}
+
+model DocumentVersion {
+  id String @id @default(uuid())
+  companyId String
+  documentId String
+  number Int
+  fileName String
+  mimeType String
+  size Int
+  digest String
+  data Bytes
+  authorId String
+  authorName String
+  note String
+  createdAt DateTime @default(now())
+  document Document @relation(fields: [companyId, documentId], references: [companyId, id], onDelete: Cascade)
+  @@unique([documentId, number])
+  @@index([companyId, documentId, createdAt])
+}
+
+model DocumentEvent {
+  id String @id @default(cuid())
+  companyId String
+  documentId String
+  actorId String
+  actorName String
+  action String
+  details String
+  createdAt DateTime @default(now())
+  document Document @relation(fields: [companyId, documentId], references: [companyId, id], onDelete: Cascade)
+  @@index([companyId, documentId, createdAt])
+}
+
+model Contract {
+  id        String @id @default(cuid())
+  companyId String
+  title     String
+  content   String
+  status    String @default("DRAFT")
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  @@index([companyId])
+}
+
+model EquipmentItem {
+  id String @id @default(cuid())
+  companyId String
+  code String
+  kind String
+  name String
+  registration String @default("")
+  serial String @default("")
+  location String @default("")
+  notes String @default("")
+  state String @default("READY")
+  mileage Int?
+  acquiredOn String?
+  nextServiceOn String?
+  custodianId String?
+  revision Int @default(0)
+  archived Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  custodian CompanyMember? @relation(fields:[companyId,custodianId],references:[companyId,id],onDelete:NoAction,onUpdate:NoAction)
+  works EquipmentWork[]
+  events EquipmentEvent[]
+  @@unique([companyId,id])
+  @@unique([companyId,code])
+  @@index([companyId,archived,state])
+  @@index([companyId,custodianId])
+}
+
+model EquipmentWork {
+  id String @id @default(cuid())
+  companyId String
+  itemId String
+  kind String
+  title String
+  details String
+  blocking Boolean @default(true)
+  dueOn String?
+  status String @default("OPEN")
+  resolution String?
+  authorName String
+  closedBy String?
+  createdAt DateTime @default(now())
+  closedAt DateTime?
+  item EquipmentItem @relation(fields:[companyId,itemId],references:[companyId,id],onDelete:Cascade)
+  @@index([companyId,itemId,status,createdAt])
+}
+
+model EquipmentEvent {
+  id String @id @default(cuid())
+  companyId String
+  itemId String
+  action String
+  actorName String
+  reason String
+  snapshot Json
+  createdAt DateTime @default(now())
+  item EquipmentItem @relation(fields:[companyId,itemId],references:[companyId,id],onDelete:Cascade)
+  @@index([companyId,itemId,createdAt])
+}
+
+model UtilityCommand {
+  id String @id @default(cuid())
+  companyId String
+  requestKey String
+  fingerprint String
+  result Json
+  company Company @relation(fields:[companyId],references:[id],onDelete:Cascade)
+  @@unique([companyId,requestKey])
+}
+
+model StatisticsLayout {
+  companyId String
+  memberId String
+  widgets String[]
+  revision Int @default(0)
+  member CompanyMember @relation(fields:[companyId,memberId],references:[companyId,id],onDelete:Cascade)
+  @@id([companyId,memberId])
+}
+
+model Notification {
+  id        String @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  category String @default("GENERAL")
+  targetUrl String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, readAt, createdAt])
+  @@index([userId, category, createdAt])
+}
+
+model AuditLog {
+  id        String @id @default(cuid())
+  companyId String
+  actorId   String
+  actorName String
+  action    String
+  entityId  String?
+  details   Json @default("{}")
+  createdAt DateTime @default(now())
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  @@index([companyId, createdAt])
+}
+
+model DocumentationFeedback {
+  id        String @id @default(cuid())
+  article   String
+  voterHash String
+  helpful   Boolean
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([article, voterHash])
+  @@index([article, helpful])
+}
+
+model Plan {
+  id        String @id @default(cuid())
+  name      String @unique
+  limits    Json
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id        String @id @default(cuid())
+  companyId String @unique
+  planId    String
+  status    String @default("FREE")
+  externalId String? @unique
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  plan      Plan @relation(fields: [planId], references: [id])
+}
+
+model Automation {
+  id        String @id @default(cuid())
+  companyId String
+  name      String
+  trigger   String
+  config    Json
+  enabled   Boolean @default(false)
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  jobs      Job[]
+  @@index([companyId])
+}
+
+model Job {
+  id           String @id @default(cuid())
+  automationId String
+  dedupeKey    String @unique
+  status       String @default("PENDING")
+  attempts     Int @default(0)
+  runAt        DateTime @default(now())
+  payload      Json
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  @@index([status, runAt])
+}

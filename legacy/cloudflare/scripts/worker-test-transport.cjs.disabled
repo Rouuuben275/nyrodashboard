@@ -1,0 +1,18 @@
+// Windows Miniflare preview can reset a reused loopback socket (ECONNRESET).
+// Each test request uses a fresh connection on both legs: test -> Vite and
+// Miniflare -> workerd. Miniflare constructs its own Pool, so changing only
+// the global dispatcher does not cover the internal leg. No request (including
+// POSTs) is retried. This preload is exclusive to the isolated test harness.
+if (process.env.RPILOT_WORKER_TEST !== "true") {
+  throw new Error("Worker test transport must only run in the isolated test harness.");
+}
+const undici = require("undici");
+const Pool = undici.Pool;
+undici.Pool = class IsolatedLoopbackPool extends Pool {
+  constructor(origin, options) {
+    const host = new URL(origin).hostname;
+    const loopback = ["127.0.0.1", "localhost", "[::1]"].includes(host);
+    super(origin, loopback ? { ...options, pipelining: 0 } : options);
+  }
+};
+undici.setGlobalDispatcher(new undici.Agent({ pipelining: 0 }));

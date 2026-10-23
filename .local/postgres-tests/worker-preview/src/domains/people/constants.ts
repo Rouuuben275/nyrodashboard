@@ -1,0 +1,3 @@
+export const peopleKinds={REVIEW:{module:"reviews",name:"Évaluations",singular:"Évaluation",template:"Modèle d’évaluation"},SANCTION:{module:"sanctions",name:"Sanctions RP",singular:"Sanction RP",template:"Type de sanction RP"}} as const;
+export const peopleStatuses:Record<string,string>={DRAFT:"Brouillon RH",PUBLISHED:"Publié / notifié",ARCHIVED:"Archivé",REVOKED:"Révoqué"};
+export const peopleEvents:Record<string,string>={CREATE:"Dossier créé",UPDATE:"Brouillon modifié",PUBLISH:"Publication à l’employé",ARCHIVE:"Archivage",REVOKE:"Révocation",ACK:"Accusé de lecture",GOAL:"Suivi d’objectif",NOTE:"Note interne modifiée"};

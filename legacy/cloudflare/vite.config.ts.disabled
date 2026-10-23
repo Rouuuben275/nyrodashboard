@@ -1,0 +1,50 @@
+import { defineConfig } from "vite";
+import {fileURLToPath} from "node:url";
+import vinext from "vinext";
+import { cloudflare } from "@cloudflare/vite-plugin";
+import { imagesOptimizer } from "@vinext/cloudflare/images/images-optimizer";
+import { kvDataAdapter } from "@vinext/cloudflare/cache/kv-data-adapter";
+import { workersCacheCdnAdapter } from "@vinext/cloudflare/cache/workers-cache-cdn-adapter";
+import {preserveVinextRedirects} from "./scripts/vinext-redirect-compat";
+
+export default defineConfig(({command})=>({
+  define:{"process.env.NODE_ENV":JSON.stringify(command==="build"?"production":"development")},
+  resolve:{alias:[
+    // Vite's SSR resolver includes the Node condition. Select Prisma's Worker
+    // entry explicitly so its query compiler is imported as a WASM module,
+    // rather than loaded from a Node filesystem path.
+    {find:/^@prisma\/client$/,replacement:fileURLToPath(new URL("./node_modules/.prisma/client/wasm.js",import.meta.url))},
+    {find:"@/lib/database-runtime",replacement:fileURLToPath(new URL("./src/lib/database-runtime.cloudflare.ts",import.meta.url))},
+    {find:"@/lib/report-font",replacement:fileURLToPath(new URL("./src/lib/report-font.cloudflare.ts",import.meta.url))},
+    {find:/^pdfkit$/,replacement:fileURLToPath(new URL("./node_modules/pdfkit/js/pdfkit.browser.mjs",import.meta.url))},
+  ]},
+  plugins: [
+    {name:"rpilot-vinext-redirects",enforce:"pre",transform(code,id){
+      if(!id.replaceAll("\\","/").endsWith("/@vinext/cloudflare/dist/cache/cdn-adapter.worker.js"))return;
+      return {code:preserveVinextRedirects(code),map:null};
+    }},
+    {name:"rpilot-pdfkit-workers",enforce:"pre",transform(code,id){
+      if(!id.replaceAll("\\","/").endsWith("/pdfkit/js/pdfkit.browser.mjs"))return;
+      // PDFKit's browser build already embeds this ICC profile in its virtual
+      // file store. Workers has no filesystem module URL: use one stable virtual
+      // key for both registerFile() and readFileSync(), without changing bytes.
+      const asset="new URL('./data/sRGB_IEC61966_2_1.icc', import.meta.url).href";
+      if(!code.includes(asset))throw new Error("PDFKit browser ICC registration changed; review the Worker adapter.");
+      return {code:code.replace(asset,JSON.stringify("rpilot:srgb.icc")),map:null};
+    }},
+    vinext({
+      images: { optimizer: imagesOptimizer() },
+    
+    cache: {
+      data: kvDataAdapter(),
+      cdn: workersCacheCdnAdapter(),
+    },
+}),
+    cloudflare({
+      viteEnvironment: {
+        name: "rsc",
+        childEnvironments: ["ssr"],
+      },
+    }),
+  ],
+}));

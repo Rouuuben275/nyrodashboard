@@ -1,0 +1,53 @@
+param(
+    [switch]$Migrate,
+    [switch]$Publish,
+    [switch]$RunTests,
+    [switch]$DatabaseFromClipboard
+)
+$ErrorActionPreference = 'Stop'
+$projectRoot = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot 'database-url.ps1')
+$productionDatabase = $null
+Push-Location -LiteralPath $projectRoot
+function Invoke-RPilotChecked {
+    param([string]$Program, [string[]]$CommandArgs)
+    & $Program @CommandArgs
+    if ($LASTEXITCODE -ne 0) { throw "Etape echouee : $Program $($CommandArgs -join ' ')" }
+}
+try {
+    if ($DatabaseFromClipboard -and -not $Migrate) { throw '-DatabaseFromClipboard necessite -Migrate.' }
+    if ($Migrate) {
+        $productionDatabase = Read-RPilotProductionDatabase -FromClipboard:$DatabaseFromClipboard
+    }
+    Invoke-RPilotChecked 'npx.cmd' @('prisma', 'generate')
+    Invoke-RPilotChecked 'npm.cmd' @('run', 'typecheck')
+    Invoke-RPilotChecked 'npm.cmd' @('run', 'audit:ui')
+    if ($RunTests) { Invoke-RPilotChecked 'npm.cmd' @('run', 'test:postgres') }
+    Invoke-RPilotChecked 'npm.cmd' @('run', 'build:vinext')
+    Invoke-RPilotChecked 'npm.cmd' @('run', 'verify:worker-artifact')
+    if ($RunTests) { Invoke-RPilotChecked 'npm.cmd' @('run', 'test:workers') }
+    Invoke-RPilotChecked 'npm.cmd' @('run', 'cf:check')
+    if ($Migrate) {
+        $previousDatabaseUrl = [Environment]::GetEnvironmentVariable('DATABASE_URL', 'Process')
+        try {
+            $env:DATABASE_URL = [System.Net.NetworkCredential]::new('', $productionDatabase).Password
+            Invoke-RPilotChecked 'npx.cmd' @('prisma', 'migrate', 'deploy')
+            Write-Host 'Migrations terminees. Si la publication echoue, reprendre avec npm.cmd run deploy:vinext -- --skip-build, sans relancer les migrations.'
+        } finally {
+            [Environment]::SetEnvironmentVariable('DATABASE_URL', $previousDatabaseUrl, 'Process')
+            $productionDatabase.Dispose()
+            $productionDatabase = $null
+        }
+    }
+    Invoke-RPilotChecked 'npx.cmd' @('vinext-cloudflare', 'deploy', '--dry-run')
+    if ($Publish) {
+        # Publish the artifact already compiled and verified above.
+        Invoke-RPilotChecked 'npm.cmd' @('run', 'deploy:vinext', '--', '--skip-build')
+    } else {
+        Write-Host 'Verification terminee. Aucun Worker publie. Ajouter -Publish pour publier et -Migrate pour appliquer les migrations de production.'
+    }
+} finally {
+    if ($productionDatabase) { $productionDatabase.Dispose() }
+    $productionDatabase = $null
+    Pop-Location
+}

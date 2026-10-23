@@ -1,0 +1,14 @@
+/** Until upstream vinext #3243 lands, do not follow redirects through ctx.exports.
+ * The invocation describes the original URL, so following a 302 replays OAuth.
+ * Keep this in the build rather than editing node_modules after installation.
+ */
+export function preserveVinextRedirects(code:string){
+  const start=code.indexOf("async function createCacheFacingRequest(");
+  const end=code.indexOf("\nfunction restoreResponseStageRequest(",start);
+  if(start<0||end<start)throw new Error("vinext cache transport changed; review the redirect compatibility fix.");
+  const section=code.slice(start,end);
+  if(/redirect:\s*["']manual["']/.test(section))return code;
+  const target="return new Request(url, {";
+  if(section.split(target).length!==2)throw new Error("vinext cache-facing Request changed; review redirect handling.");
+  return code.slice(0,start)+section.replace(target,`${target}\n\t\tredirect: "manual",`)+code.slice(end);
+}

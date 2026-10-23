@@ -1,0 +1,3 @@
+import {z,ZodError} from "zod";
+import {publicJobs} from "@/domains/recruitment/queries";
+export async function GET(req:Request){try{const q=z.object({page:z.coerce.number().int().min(1).max(100000).default(1),q:z.string().trim().max(160).default("")}).parse(Object.fromEntries(new URL(req.url).searchParams));return Response.json(await publicJobs(q.page,q.q),{headers:{"Cache-Control":"no-store"}});}catch(e){if(e instanceof ZodError)return Response.json({error:"Filtres invalides."},{status:400});console.error("Public jobs read failed",e instanceof Error?e.message:"Unknown");return Response.json({error:"Chargement des offres impossible."},{status:500});}}

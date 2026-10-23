@@ -1,0 +1,35 @@
+"use client";
+import {useEffect,useState,type ReactNode} from "react";
+import type {Serialized} from "@/domains/core/queries";
+import type {AnnouncementData} from "@/domains/announcements/queries";
+import {useWorkspace} from "./workspace-context";
+import {RPilotInput} from "./ui/input";
+import {RPilotTextarea} from "./ui/textarea";
+import {RPilotSelect} from "./ui/select";
+import {RPilotPagination} from "./ui/primitives";
+export type AnnouncementClientData=Serialized<AnnouncementData>;
+type Detail=NonNullable<AnnouncementClientData["selected"]>;
+export type AnnouncementOp={type:"edit"}|{type:"publish"}|{type:"transition";decision:"ARCHIVE"|"RESTORE"|"UNSCHEDULE"};
+export function AnnouncementField({label,children}:{label:string;children:ReactNode}){return <label className="form-field"><span>{label}</span>{children}</label>;}
+function DepartmentPicker({value,onChange}:{value:string;onChange:(v:string)=>void}){
+  const {current:c}=useWorkspace();const [q,setQ]=useState(""),[page,setPage]=useState(1),[items,setItems]=useState<string[]>([]),[total,setTotal]=useState(0),[loading,setLoading]=useState(true),[error,setError]=useState("");
+  const params=new URLSearchParams({companyId:c!.company.id,view:"departments",q,page:String(page)}).toString();
+  useEffect(()=>{const controller=new AbortController();setLoading(true);const timer=setTimeout(()=>{fetch(`/api/announcements?${params}`,{signal:controller.signal,cache:"no-store"}).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error);return d as AnnouncementClientData;}).then(d=>{if(!controller.signal.aborted){setItems(d.departments.map(item=>item.department));setTotal(d.departmentCount);setError("");}}).catch(e=>{if(!controller.signal.aborted)setError(e instanceof Error?e.message:"Recherche impossible.");}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});},180);return()=>{controller.abort();clearTimeout(timer);};},[params]);
+  const choices=[...(value&&!items.includes(value)?[value]:[]),...items];
+  return <section className="announcement-picker"><AnnouncementField label="Rechercher un département"><RPilotInput value={q} onChange={e=>{setQ(e.target.value);setPage(1);}}/></AnnouncementField><AnnouncementField label="Département destinataire"><RPilotSelect value={value} loading={loading} onValueChange={onChange} options={[{value:"",label:"Choisir un département",disabled:true},...choices.map(item=>({value:item,label:item}))]}/></AnnouncementField><RPilotPagination page={page} pages={Math.ceil(total/25)} onPageChange={setPage}/>{error&&<p className="form-error-box" role="alert">{error}</p>}</section>;
+}
+export function AnnouncementForm({op,selected,onCancel,onDone}:{op:AnnouncementOp;selected:Detail|null;onCancel:()=>void;onDone:(r:Record<string,unknown>)=>void}){
+  const {mutate,busy}=useWorkspace();const [key]=useState(()=>crypto.randomUUID()),[error,setError]=useState("");
+  const [scope,setScope]=useState(selected?.scope??"ALL"),[department,setDepartment]=useState(selected?.department??"");
+  return <form className="workspace-form" onSubmit={async e=>{e.preventDefault();setError("");const form=new FormData(e.currentTarget),v=(name:string)=>String(form.get(name)??"");try{
+    let payload:Record<string,unknown>;
+    if(op.type==="edit")payload={action:"announcement.save",id:selected?.id,revision:selected?.revision,title:v("title"),body:v("body"),priority:v("priority"),scope,department:scope==="ALL"?null:department||null};
+    else{if(!selected)throw new Error("Annonce requise.");const target={id:selected.id,revision:selected.revision};payload=op.type==="publish"?{action:"announcement.publish",...target,startsAt:v("startsAt")?new Date(v("startsAt")).toISOString():null,expiresAt:v("expiresAt")?new Date(v("expiresAt")).toISOString():null}:{action:"announcement.transition",...target,decision:op.decision,reason:v("reason")};}
+    onDone(await mutate({...payload,requestKey:key},"Annonce enregistrée"));
+  }catch(e){setError(e instanceof Error?e.message:"Enregistrement impossible.");}}}>
+    {op.type==="edit"&&<><AnnouncementField label="Titre"><RPilotInput name="title" required minLength={3} maxLength={160} defaultValue={selected?.title??""}/></AnnouncementField><AnnouncementField label="Texte de l’annonce"><RPilotTextarea name="body" required minLength={3} maxLength={8000} rows={10} defaultValue={selected?.body??""}/></AnnouncementField><div className="form-grid"><AnnouncementField label="Priorité"><RPilotSelect name="priority" defaultValue={selected?.priority??"NORMAL"} options={[{value:"NORMAL",label:"Normale"},{value:"HIGH",label:"Importante"}]}/></AnnouncementField><AnnouncementField label="Destinataires"><RPilotSelect value={scope} onValueChange={setScope} options={[{value:"ALL",label:"Toute l’entreprise"},{value:"DEPARTMENT",label:"Un département"}]}/></AnnouncementField></div>{scope==="DEPARTMENT"&&<DepartmentPicker value={department} onChange={setDepartment}/>}<p className="finance-note">L’annonce reste un brouillon privé à la direction. Après publication, le texte et les destinataires sont conservés. L’accès départemental suit le département actuel de chaque employé.</p></>}
+    {op.type==="publish"&&<><p>Publier « {selected?.title} » pour {selected?.scope==="ALL"?"toute l’entreprise":`le département ${selected?.department}`}.</p><AnnouncementField label="Date de publication facultative"><RPilotInput name="startsAt" aria-label="Date de publication facultative" type="datetime-local"/></AnnouncementField><AnnouncementField label="Date d’expiration facultative"><RPilotInput name="expiresAt" aria-label="Date d’expiration facultative" type="datetime-local"/></AnnouncementField><p className="finance-note">Sans date de publication : visible immédiatement, avec notification interne aux destinataires actifs autorisés. Avec une date future : visible automatiquement à cette date lors du chargement des annonces, sans notification différée. Dates saisies dans le fuseau de votre navigateur, affichées en heure de Paris. À expiration, l’annonce reste consultable dans Archives.</p><label className="checkbox-label"><RPilotInput name="confirm" type="checkbox" required/>Je confirme la publication vers ces destinataires.</label></>}
+    {op.type==="transition"&&<><p>{op.decision==="ARCHIVE"?"L’annonce et son historique restent conservés dans les archives.":op.decision==="RESTORE"?"L’annonce retrouve son état précédent. Une date d’expiration passée continue de la classer dans les archives.":"La publication future est annulée. L’annonce redevient un brouillon privé modifiable."}</p><AnnouncementField label="Motif conservé dans l’historique accessible"><RPilotTextarea name="reason" required minLength={3} maxLength={500}/></AnnouncementField></>}
+    {error&&<p role="alert" className="form-error-box">{error}</p>}<div className="form-actions"><button type="button" disabled={busy} className="btn outline" onClick={onCancel}>Revenir</button><button type="submit" disabled={busy} className="btn primary">{busy?"Enregistrement…":op.type==="publish"?"Confirmer la publication":"Enregistrer"}</button></div>
+  </form>;
+}

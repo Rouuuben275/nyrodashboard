@@ -1,0 +1,12 @@
+node_modules/
+.next/
+.local/
+.cloudflare/
+.vinext/
+dist/
+.git/
+.env*
+*.zip
+legacy/
+tests/
+docs/

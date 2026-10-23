@@ -1,0 +1,4 @@
+import {z} from "zod";
+const id=z.string().min(1).max(100);
+const date=z.iso.date().refine(v=>v>="2000-01-01"&&v<="2100-12-31");
+export const salesQuery=z.object({companyId:id,view:z.enum(["catalog","history","cart"]).default("history"),productIds:z.string().min(1).max(10099).transform(v=>v.split(",")).pipe(id.array().min(1).max(100)).optional(),context:z.enum(["sales","cash"]).default("sales"),q:z.string().trim().max(120).default(""),category:z.string().trim().max(160).optional(),page:z.coerce.number().int().min(1).max(100000).default(1),status:z.enum(["COMPLETED","CANCELLED"]).optional(),payment:z.enum(["Carte RP","Espèces RP","Virement RP"]).optional(),mine:z.enum(["true","false"]).default("false"),from:date.optional(),to:date.optional(),saleId:id.optional()}).strict().refine(v=>!v.from||!v.to||v.from<=v.to,"Période invalide.").refine(v=>v.view!=="cart"||!!v.productIds,"Articles du panier requis.");

@@ -1,0 +1,2 @@
+export function saleAmounts(subtotal:number,discountBps:number){const discount=Math.round(subtotal*discountBps/10000);return {subtotal,discount,total:subtotal-discount};}
+export function discountBasisPoints(value:string){if(!/^\d{1,3}([.,]\d{1,2})?$/.test(value.trim()))throw new Error("Remise : utilisez un pourcentage entre 0 et 100, avec deux décimales maximum.");const [whole,fraction=""]=value.trim().replace(",",".").split(".");const bps=Number(whole)*100+Number(fraction.padEnd(2,"0"));if(bps>10000)throw new Error("La remise ne peut pas dépasser 100 %.");return bps;}

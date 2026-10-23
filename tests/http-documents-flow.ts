@@ -1,0 +1,40 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {randomBytes,randomUUID} from "node:crypto";
+import {db} from "../src/lib/db";
+import {auth} from "../src/lib/auth";
+import {getCookies} from "better-auth/cookies";
+import {serializeSignedCookie} from "better-call";
+test("HTTP: real private document uploads, immutable versions and revoked access",async()=>{
+ const origin=process.env.BETTER_AUTH_URL!,tag=`http-document-${randomUUID()}`,users:string[]=[],companies:string[]=[];
+ const person=async(name:string)=>{const u=await db.user.create({data:{name,email:`${tag}-${name}@example.test`}});users.push(u.id);const token=randomBytes(32).toString("hex");await db.session.create({data:{id:randomUUID(),userId:u.id,token,expiresAt:new Date(Date.now()+600000)}});const config=getCookies(auth.options).sessionToken;return {u,headers:{Origin:origin,Cookie:(await serializeSignedCookie(config.name,token,process.env.BETTER_AUTH_SECRET!,config.attributes)).split(";")[0]}};};
+ const post=(path:string,headers:Record<string,string>,body:unknown)=>fetch(`${origin}${path}`,{method:"POST",headers:{...headers,"Content-Type":"application/json"},body:JSON.stringify(body)});
+ try{
+  const owner=await person("owner"),reader=await person("reader"),other=await person("other");
+  const created=await post("/api/workspace",owner.headers,{action:"company.create",name:tag,sector:"Services"});assert.equal(created.status,200,await created.clone().text());const company=(await created.json()).data;companies.push(company.id);
+  const role=await db.companyRole.create({data:{companyId:company.id,name:"Documents lecteur",permissions:["documents.read"]}}),member=await db.companyMember.create({data:{companyId:company.id,userId:reader.u.id,roleId:role.id,characterName:"Lecteur"}});
+  const base={companyId:company.id,name:"Consigne privée",audience:"TEAM",fileName:"consigne.txt",note:"Version initiale",requestKey:randomUUID()};
+  const upload=(extra:Record<string,string>={},text="SECRET FICHIER MÉTIER",headers=owner.headers)=>fetch(`${origin}/api/documents/file?${new URLSearchParams({...base,...extra})}`,{method:"POST",headers:{...headers,"Content-Type":"text/plain"},body:text});
+  const list=(headers:Record<string,string>)=>fetch(`${origin}/api/documents?companyId=${company.id}`,{headers});
+  assert.equal((await list({})).status,401);assert.equal((await upload({},"Privé",{...owner.headers,Origin:"https://evil.test"})).status,403);
+  const uploaded=await upload();assert.equal(uploaded.status,201,await uploaded.clone().text());const doc=await uploaded.json();
+  const retry=await upload();assert.equal(retry.status,201);assert.deepEqual(await retry.json(),doc);assert.equal(await db.documentVersion.count({where:{documentId:doc.id}}),1);
+  const readUrl=`${origin}/api/documents/file?companyId=${company.id}&documentId=${doc.id}`;
+  assert.equal((await fetch(readUrl)).status,401);assert.equal((await fetch(readUrl,{headers:other.headers})).status,403);
+  const file=await fetch(readUrl,{headers:reader.headers});assert.equal(file.status,200);assert.equal(await file.text(),"SECRET FICHIER MÉTIER");assert.match(file.headers.get("content-disposition")??"",/^attachment/);assert.match(file.headers.get("content-security-policy")??"",/sandbox/);assert.equal(file.headers.get("x-content-type-options"),"nosniff");assert.match(file.headers.get("cache-control")??"",/no-store/);
+  const preview=await fetch(`${readUrl}&preview=true`,{headers:reader.headers});assert.match(preview.headers.get("content-disposition")??"",/^inline/);
+  const metadata=await list(reader.headers);assert.equal(metadata.status,200);const json=await metadata.text();assert.ok(!json.includes("SECRET FICHIER MÉTIER"));assert.ok(!json.includes("storageKey"));assert.ok(!json.includes('"data"'));
+  const changed=await upload({documentId:doc.id,revision:String(doc.revision),requestKey:randomUUID()},"NOUVELLE VERSION");assert.equal(changed.status,201,await changed.clone().text());let rev=(await changed.json()).revision;
+  const versions=await db.documentVersion.findMany({where:{documentId:doc.id},orderBy:{number:"asc"}});assert.equal(versions.length,2);assert.equal(await fetch(`${readUrl}&versionId=${versions[0].id}`,{headers:reader.headers}).then(r=>r.text()),"SECRET FICHIER MÉTIER");
+  const edit=await post("/api/documents",owner.headers,{action:"document.update",companyId:company.id,id:doc.id,revision:rev,name:base.name,folderId:null,audience:"MANAGERS",requestKey:randomUUID()});assert.equal(edit.status,200);rev=(await edit.json()).revision;
+  assert.equal((await fetch(`${readUrl}&versionId=${versions[0].id}`,{headers:reader.headers})).status,404);
+  assert.equal((await list(reader.headers).then(r=>r.json())).total,0);
+  assert.equal((await post("/api/documents",owner.headers,{action:"document.archive",companyId:company.id,id:doc.id,revision:rev-1,archived:true,reason:"Archive test",requestKey:randomUUID()})).status,409);
+  assert.equal((await upload({requestKey:randomUUID()},"<svg/>")).status,201,"Plain text remains inert even when its text contains markup");
+  const invalid=await fetch(`${origin}/api/documents/file?${new URLSearchParams({...base,fileName:"payload.svg",requestKey:randomUUID()})}`,{method:"POST",headers:{...owner.headers,"Content-Type":"image/svg+xml"},body:"<svg/>"});assert.equal(invalid.status,415);
+  assert.equal((await upload({requestKey:randomUUID()},"x".repeat(5242881))).status,413);
+  await post("/api/workspace",owner.headers,{action:"module.toggle",key:"documents",enabled:false,companyId:company.id});assert.equal((await fetch(readUrl,{headers:owner.headers})).status,403);assert.equal((await upload({requestKey:randomUUID()})).status,403);
+  await post("/api/workspace",owner.headers,{action:"module.toggle",key:"documents",enabled:true,companyId:company.id});assert.equal((await fetch(readUrl,{headers:owner.headers})).status,200);
+  await db.companyMember.update({where:{id:member.id},data:{status:"INACTIVE"}});assert.equal((await list(reader.headers)).status,403);
+ }finally{await db.company.deleteMany({where:{id:{in:companies}}});await db.user.deleteMany({where:{id:{in:users}}});for(const id of users)await db.rateLimit.deleteMany({where:{OR:[{key:{startsWith:`app:${id}:`}},{key:{startsWith:`documents:${id}:`}}]}});}
+});

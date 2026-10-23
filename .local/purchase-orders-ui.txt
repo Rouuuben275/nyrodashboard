@@ -1,0 +1,54 @@
+export function PurchaseOrders() {
+  const {current:c}=useWorkspace();
+  return c?<OrdersForCompany key={`${c.company.id}:${c.permissions.join(',')}`}/>:null;
+}
+function OrdersForCompany() {
+  const {current:c,allowed,mutate,busy}=useWorkspace();
+  const [editing,setEditing]=useState<Order|"new"|null>(null);
+  const [detail,setDetail]=useState<string|null>(null);
+  const [filter,setFilter]=useState("");
+  const [decision,setDecision]=useState<"RECEIVED"|"CANCELLED"|null>(null);
+  const [error,setError]=useState("");
+  if(!c)return null;
+  const selected=c.purchaseOrders.find(o=>o.id===detail);
+  const list=c.purchaseOrders.filter(o=>!filter||o.status===filter);
+  async function transition(orderId:string,status:string,reason="") {
+    setError("");
+    try{await mutate({action:"purchase.transition",orderId,status,reason},"Statut de commande enregistré");setDecision(null);}
+    catch(e){setError(e instanceof Error?e.message:"Échec");}
+  }
+  const columns:ColumnDef<Order>[]=[
+    {accessorKey:"number",header:"Bon de commande",cell:({row})=><button className="text-link mono" onClick={()=>setDetail(row.original.id)}>{row.original.number}<ArrowRight size={13}/></button>},
+    {accessorKey:"supplierName",header:"Fournisseur"},
+    {accessorKey:"total",header:"Coût commandé RP",cell:({row})=><strong>{money(row.original.total)}</strong>},
+    {accessorKey:"status",header:"Statut",cell:({row})=><span className="badge neutral">{states[row.original.status]}</span>},
+    {id:"received",header:"Unités reçues",cell:({row})=>`${row.original.items.reduce((s,i)=>s+receivedQuantity(row.original,i),0)} / ${row.original.items.reduce((s,i)=>s+i.quantity,0)}`},
+    {id:"action",header:"",cell:({row})=><button className="btn outline small" onClick={()=>setDetail(row.original.id)}>Consulter</button>},
+  ];
+  return <>
+    <Heading title="Du fournisseur à votre inventaire." description="Commandes, livraisons partielles et complètes. Seul le coût reçu est enregistré en comptabilité.">{allowed("orders.manage")&&<button className="btn primary" onClick={()=>setEditing("new")}><Plus size={15}/>Nouvelle commande</button>}</Heading>
+    <div className="info-note"><Truck size={18}/>Les commandes restent internes à RPilot : aucun message n’est envoyé au fournisseur. L’annulation d’un reliquat conserve les livraisons et les dépenses déjà enregistrées.</div>
+    <div className="record-filters"><RPilotSelect aria-label="Statut des commandes" value={filter} onValueChange={setFilter}><option value="">Tous les statuts</option>{Object.entries(states).map(([value,label])=><option key={value} value={value}>{label}</option>)}</RPilotSelect><button className="btn outline small" onClick={()=>exportCsv("commandes-achat",[["Référence","Fournisseur","Statut","Coût commandé centimes RP","Coût reçu centimes RP","Réception complète"],...list.map(o=>[o.number,o.supplierName,states[o.status],o.total,o.items.reduce((s,i)=>s+receivedQuantity(o,i)*i.unitCost,0),o.receivedAt||""])])}>Exporter CSV</button></div>
+    <DataTable data={list} columns={columns} placeholder="Rechercher une commande, un fournisseur…"/>
+    <Modal open={Boolean(editing)} onOpenChange={v=>!v&&setEditing(null)} title="Préparer une commande d’achat RP" description="Les coûts sont exprimés par unité. Le brouillon n’a aucun effet sur le stock." wide>{editing&&<OrderForm key={typeof editing==="string"?editing:editing.id} record={editing==="new"?undefined:editing} close={()=>setEditing(null)}/>}</Modal>
+    <Modal open={Boolean(selected)} onOpenChange={v=>{if(!v){setDetail(null);setDecision(null);setError("");}}} title={selected?.number||"Commande"} description="Les références et les coûts sont conservés dans le bon de commande." wide>
+      {selected&&<div className="bill-detail">
+        <div className="bill-summary"><div><span className="mini-label">FOURNISSEUR RP</span><h3>{selected.supplierName}</h3></div><span className="badge neutral">{states[selected.status]}</span></div>
+        <div className="table-scroll"><table><thead><tr><th>Produit</th><th>Commandé</th><th>Reçu</th><th>{selected.status==="CANCELLED"?"Non livré / annulé":"Reste"}</th><th>Coût unitaire RP</th></tr></thead><tbody>{selected.items.map(i=><tr key={i.id}><td>{i.name}</td><td>{i.quantity}</td><td>{receivedQuantity(selected,i)}</td><td>{i.quantity-receivedQuantity(selected,i)}</td><td>{money(i.unitCost)}</td></tr>)}</tbody></table></div>
+        <div className="bill-totals"><span>Total commandé RP<strong>{money(selected.total)}</strong></span><span>Coût reçu RP<strong>{money(selected.items.reduce((s,i)=>s+receivedQuantity(selected,i)*i.unitCost,0))}</strong></span></div>
+        {selected.notes&&<p className="bill-notes">{selected.notes}</p>}
+        {error&&<p className="form-error-box" role="alert">{error}</p>}
+        {decision==="RECEIVED"?<ReceiptForm key={selected.id} order={selected} close={()=>setDecision(null)}/>:decision==="CANCELLED"?<form className="workspace-form receipt-confirmation" onSubmit={e=>{e.preventDefault();const form=new FormData(e.currentTarget);void transition(selected.id,"CANCELLED",String(form.get("reason")||""));}}>
+          <h3>{selected.status==="PARTIAL"?"Annuler le reliquat non livré":"Annuler cette commande"}</h3><p>Les livraisons, stocks et dépenses déjà enregistrés sont conservés. Cette action ne crée aucun retour ni remboursement.</p>
+          <Field title="Motif d’annulation"><RPilotTextarea required minLength={3} maxLength={1000} name="reason"/></Field>
+          <label className="checkbox-label"><RPilotInput type="checkbox" required/>Je confirme cette opération RP.</label><div className="form-actions"><button className="btn outline" type="button" onClick={()=>setDecision(null)}>Revenir</button><button className="btn primary" disabled={busy}>Confirmer<Check size={15}/></button></div>
+        </form>:<div className="bill-actions">{allowed("orders.manage")&&<>
+          {selected.status==="DRAFT"&&<><button className="btn outline" onClick={()=>{setEditing(selected);setDetail(null);}}>Modifier</button><button className="btn primary" disabled={busy} onClick={()=>transition(selected.id,"ORDERED")}>Confirmer la commande</button></>}
+          {["ORDERED","PARTIAL"].includes(selected.status)&&allowed("inventory.manage")&&allowed("finance.read")&&<button className="btn primary" onClick={()=>{setError("");setDecision("RECEIVED");}}><PackageCheck size={16}/>Enregistrer une livraison</button>}
+          {["DRAFT","ORDERED","PARTIAL"].includes(selected.status)&&<button className="btn outline" onClick={()=>{setError("");setDecision("CANCELLED");}}>{selected.status==="PARTIAL"?"Annuler le reliquat":"Annuler la commande"}</button>}
+        </>}</div>}
+        <ReceiptHistory key={selected.id} companyId={c.company.id} orderId={selected.id} version={selected.updatedAt}/>
+      </div>}
+    </Modal>
+  </>;
+}

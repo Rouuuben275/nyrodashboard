@@ -1,0 +1,1 @@
+export async function downloadUtility(url:string,name:string){const r=await fetch(url,{cache:"no-store"});if(!r.ok)throw new Error((await r.json()).error);const href=URL.createObjectURL(await r.blob()),a=document.createElement("a");a.href=href;a.download=name;a.click();URL.revokeObjectURL(href);}

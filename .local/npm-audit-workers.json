@@ -1,0 +1,325 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "@prisma/config": {
+      "name": "@prisma/config",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "deepmerge-ts"
+      ],
+      "effects": [
+        "prisma"
+      ],
+      "range": "6.13.0-dev.1 - 7.10.0 || 8.1.0-dev.1 - 8.1.0-dev.4",
+      "nodes": [
+        "node_modules/@prisma/config"
+      ],
+      "fixAvailable": {
+        "name": "prisma",
+        "version": "7.10.1",
+        "isSemVerMajor": true
+      }
+    },
+    "@vercel/og": {
+      "name": "@vercel/og",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "satori"
+      ],
+      "effects": [
+        "vinext"
+      ],
+      "range": ">=1.0.2",
+      "nodes": [
+        "node_modules/@vercel/og"
+      ],
+      "fixAvailable": {
+        "name": "vinext",
+        "version": "0.2.1",
+        "isSemVerMajor": true
+      }
+    },
+    "@vinext/cloudflare": {
+      "name": "@vinext/cloudflare",
+      "severity": "moderate",
+      "isDirect": true,
+      "via": [
+        "vinext"
+      ],
+      "effects": [],
+      "range": ">=1.0.0-beta.0",
+      "nodes": [
+        "node_modules/@vinext/cloudflare"
+      ],
+      "fixAvailable": {
+        "name": "@vinext/cloudflare",
+        "version": "0.2.1",
+        "isSemVerMajor": true
+      }
+    },
+    "braces": {
+      "name": "braces",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1240992,
+          "name": "braces",
+          "dependency": "braces",
+          "title": "braces vulnerable to stack-exhaustion denial of service through deeply nested patterns",
+          "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+          "severity": "high",
+          "cwe": [
+            "CWE-674"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": "<=3.0.3"
+        }
+      ],
+      "effects": [
+        "micromatch"
+      ],
+      "range": "*",
+      "nodes": [
+        "node_modules/braces"
+      ],
+      "fixAvailable": {
+        "name": "vinext",
+        "version": "0.2.1",
+        "isSemVerMajor": true
+      }
+    },
+    "deepmerge-ts": {
+      "name": "deepmerge-ts",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1145093,
+          "name": "deepmerge-ts",
+          "dependency": "deepmerge-ts",
+          "title": "DeepmergeTS has stack exhaustion when merging recursive object graphs",
+          "url": "https://github.com/advisories/GHSA-ggr8-5vv4-36mx",
+          "severity": "high",
+          "cwe": [
+            "CWE-674"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<8.0.0"
+        }
+      ],
+      "effects": [
+        "@prisma/config"
+      ],
+      "range": "<8.0.0",
+      "nodes": [
+        "node_modules/deepmerge-ts"
+      ],
+      "fixAvailable": {
+        "name": "prisma",
+        "version": "7.10.1",
+        "isSemVerMajor": true
+      }
+    },
+    "fast-glob": {
+      "name": "fast-glob",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "micromatch"
+      ],
+      "effects": [
+        "vite-plugin-dynamic-import"
+      ],
+      "range": "*",
+      "nodes": [
+        "node_modules/fast-glob"
+      ],
+      "fixAvailable": {
+        "name": "vinext",
+        "version": "0.2.1",
+        "isSemVerMajor": true
+      }
+    },
+    "fflate": {
+      "name": "fflate",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1164783,
+          "name": "fflate",
+          "dependency": "fflate",
+          "title": "fflate unzipSync can enter an infinite loop when parsing malformed ZIP64 archives",
+          "url": "https://github.com/advisories/GHSA-px8p-9vwx-vf98",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-400"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": ">=0.7.0 <0.7.5"
+        }
+      ],
+      "effects": [
+        "satori"
+      ],
+      "range": "0.7.0 - 0.7.4",
+      "nodes": [
+        "node_modules/satori/node_modules/fflate"
+      ],
+      "fixAvailable": {
+        "name": "vinext",
+        "version": "0.2.1",
+        "isSemVerMajor": true
+      }
+    },
+    "micromatch": {
+      "name": "micromatch",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "braces"
+      ],
+      "effects": [
+        "fast-glob"
+      ],
+      "range": ">=0.2.0",
+      "nodes": [
+        "node_modules/micromatch"
+      ],
+      "fixAvailable": {
+        "name": "vinext",
+        "version": "0.2.1",
+        "isSemVerMajor": true
+      }
+    },
+    "prisma": {
+      "name": "prisma",
+      "severity": "high",
+      "isDirect": true,
+      "via": [
+        "@prisma/config"
+      ],
+      "effects": [],
+      "range": "6.13.0-dev.1 - 7.10.0 || 8.0.0-rc.3 - 8.1.0-dev.4",
+      "nodes": [
+        "node_modules/prisma"
+      ],
+      "fixAvailable": {
+        "name": "prisma",
+        "version": "7.10.1",
+        "isSemVerMajor": true
+      }
+    },
+    "satori": {
+      "name": "satori",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "fflate"
+      ],
+      "effects": [
+        "@vercel/og"
+      ],
+      "range": ">=0.33.0",
+      "nodes": [
+        "node_modules/satori"
+      ],
+      "fixAvailable": {
+        "name": "vinext",
+        "version": "0.2.1",
+        "isSemVerMajor": true
+      }
+    },
+    "vinext": {
+      "name": "vinext",
+      "severity": "high",
+      "isDirect": true,
+      "via": [
+        "@vercel/og",
+        "vite-plugin-commonjs"
+      ],
+      "effects": [
+        "@vinext/cloudflare"
+      ],
+      "range": ">=0.0.16",
+      "nodes": [
+        "node_modules/vinext"
+      ],
+      "fixAvailable": {
+        "name": "vinext",
+        "version": "0.2.1",
+        "isSemVerMajor": true
+      }
+    },
+    "vite-plugin-commonjs": {
+      "name": "vite-plugin-commonjs",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "vite-plugin-dynamic-import"
+      ],
+      "effects": [
+        "vinext"
+      ],
+      "range": "0.5.0 - 0.5.2 || >=0.7.0",
+      "nodes": [
+        "node_modules/vite-plugin-commonjs"
+      ],
+      "fixAvailable": {
+        "name": "vinext",
+        "version": "0.2.1",
+        "isSemVerMajor": true
+      }
+    },
+    "vite-plugin-dynamic-import": {
+      "name": "vite-plugin-dynamic-import",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "fast-glob"
+      ],
+      "effects": [
+        "vite-plugin-commonjs"
+      ],
+      "range": ">=0.2.0",
+      "nodes": [
+        "node_modules/vite-plugin-dynamic-import"
+      ],
+      "fixAvailable": {
+        "name": "vinext",
+        "version": "0.2.1",
+        "isSemVerMajor": true
+      }
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 4,
+      "high": 9,
+      "critical": 0,
+      "total": 13
+    },
+    "dependencies": {
+      "prod": 331,
+      "dev": 32,
+      "optional": 117,
+      "peer": 48,
+      "peerOptional": 0,
+      "total": 504
+    }
+  }
+}

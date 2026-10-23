@@ -1,0 +1,5 @@
+export type RuntimeEnvironment={RPILOT_OWNER_DISCORD_ID?:string;DATABASE_URL?:string;BETTER_AUTH_URL?:string;BETTER_AUTH_SECRET?:string;DISCORD_CLIENT_ID?:string;DISCORD_CLIENT_SECRET?:string;RPILOT_SLOT_PAYMENTS_MODE?:string;STRIPE_SECRET_KEY?:string;STRIPE_WEBHOOK_SECRET?:string;HYPERDRIVE?:{connectionString:string}};
+export type DatabaseRuntime={key:object|null;env:RuntimeEnvironment;onComplete?:(cleanup:()=>Promise<void>)=>void;worker:boolean};
+// Next.js and command-line scripts. Vite substitutes the Cloudflare implementation
+// below for the Worker build; no Cloudflare virtual module reaches Node.js.
+export function databaseRuntime():DatabaseRuntime{return {key:null,env:{RPILOT_OWNER_DISCORD_ID:process.env.RPILOT_OWNER_DISCORD_ID,DATABASE_URL:process.env.DATABASE_URL,BETTER_AUTH_URL:process.env.BETTER_AUTH_URL,BETTER_AUTH_SECRET:process.env.BETTER_AUTH_SECRET,DISCORD_CLIENT_ID:process.env.DISCORD_CLIENT_ID,DISCORD_CLIENT_SECRET:process.env.DISCORD_CLIENT_SECRET,RPILOT_SLOT_PAYMENTS_MODE:process.env.RPILOT_SLOT_PAYMENTS_MODE,STRIPE_SECRET_KEY:process.env.STRIPE_SECRET_KEY,STRIPE_WEBHOOK_SECRET:process.env.STRIPE_WEBHOOK_SECRET},worker:false};}

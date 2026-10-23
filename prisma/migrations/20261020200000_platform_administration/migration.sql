@@ -1,0 +1,16 @@
+ALTER TABLE "User" ADD COLUMN "accessStatus" TEXT NOT NULL DEFAULT 'ACTIVE', ADD COLUMN "suspendedUntil" TIMESTAMP(3), ADD COLUMN "adminRevision" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "Company" ADD COLUMN "accessStatus" TEXT NOT NULL DEFAULT 'ACTIVE', ADD COLUMN "suspendedUntil" TIMESTAMP(3), ADD COLUMN "adminRevision" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "RPServer" ADD COLUMN "slug" TEXT, ADD COLUMN "logoUrl" TEXT NOT NULL DEFAULT '', ADD COLUMN "bannerUrl" TEXT NOT NULL DEFAULT '', ADD COLUMN "status" TEXT NOT NULL DEFAULT 'ACTIVE', ADD COLUMN "suspendedUntil" TIMESTAMP(3), ADD COLUMN "visibility" TEXT NOT NULL DEFAULT 'PRIVATE', ADD COLUMN "accessMode" TEXT NOT NULL DEFAULT 'PRIVATE', ADD COLUMN "maxCompanies" INTEGER NOT NULL DEFAULT 100, ADD COLUMN "maxUsers" INTEGER NOT NULL DEFAULT 1000, ADD COLUMN "revision" INTEGER NOT NULL DEFAULT 0;
+CREATE UNIQUE INDEX "RPServer_slug_key" ON "RPServer"("slug");
+ALTER TABLE "ServerMember" ADD COLUMN "status" TEXT NOT NULL DEFAULT 'ACTIVE', ADD COLUMN "expiresAt" TIMESTAMP(3);
+CREATE TABLE "PlatformGrant" ("id" TEXT NOT NULL,"discordId" TEXT NOT NULL,"permissions" TEXT[],"status" TEXT NOT NULL DEFAULT 'ACTIVE',"expiresAt" TIMESTAMP(3),"revision" INTEGER NOT NULL DEFAULT 0,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"updatedAt" TIMESTAMP(3) NOT NULL,CONSTRAINT "PlatformGrant_pkey" PRIMARY KEY ("id"));
+CREATE UNIQUE INDEX "PlatformGrant_discordId_key" ON "PlatformGrant"("discordId");
+CREATE TABLE "ServerDiscordGrant" ("id" TEXT NOT NULL,"serverId" TEXT NOT NULL,"discordId" TEXT NOT NULL,"roleId" TEXT NOT NULL,"status" TEXT NOT NULL DEFAULT 'ACTIVE',"expiresAt" TIMESTAMP(3),"revision" INTEGER NOT NULL DEFAULT 0,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"updatedAt" TIMESTAMP(3) NOT NULL,CONSTRAINT "ServerDiscordGrant_pkey" PRIMARY KEY ("id"));
+CREATE UNIQUE INDEX "ServerDiscordGrant_serverId_discordId_key" ON "ServerDiscordGrant"("serverId","discordId");
+ALTER TABLE "ServerDiscordGrant" ADD CONSTRAINT "ServerDiscordGrant_serverId_fkey" FOREIGN KEY ("serverId") REFERENCES "RPServer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ServerDiscordGrant" ADD CONSTRAINT "ServerDiscordGrant_serverId_roleId_fkey" FOREIGN KEY ("serverId","roleId") REFERENCES "ServerRole"("serverId","id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+CREATE TABLE "PlatformAudit" ("id" TEXT NOT NULL,"actorId" TEXT NOT NULL,"actorName" TEXT NOT NULL,"action" TEXT NOT NULL,"targetType" TEXT NOT NULL,"targetId" TEXT NOT NULL,"reason" TEXT NOT NULL,"result" TEXT NOT NULL DEFAULT 'SUCCESS',"correlationId" TEXT NOT NULL,"changes" JSONB NOT NULL DEFAULT '{}',"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "PlatformAudit_pkey" PRIMARY KEY ("id"));
+CREATE INDEX "PlatformAudit_createdAt_id_idx" ON "PlatformAudit"("createdAt","id");
+CREATE INDEX "PlatformAudit_targetType_targetId_createdAt_idx" ON "PlatformAudit"("targetType","targetId","createdAt");
+CREATE TABLE "PlatformCommand" ("id" TEXT NOT NULL,"requestKey" TEXT NOT NULL,"fingerprint" TEXT NOT NULL,"result" JSONB NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "PlatformCommand_pkey" PRIMARY KEY ("id"));
+CREATE UNIQUE INDEX "PlatformCommand_requestKey_key" ON "PlatformCommand"("requestKey");

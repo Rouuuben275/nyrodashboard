@@ -1,0 +1,16 @@
+CREATE TABLE "ServerCommunityMember" ("id" TEXT NOT NULL,"serverId" TEXT NOT NULL,"userId" TEXT NOT NULL,"status" TEXT NOT NULL DEFAULT 'ACTIVE',"revision" INTEGER NOT NULL DEFAULT 0,"joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"updatedAt" TIMESTAMP(3) NOT NULL,CONSTRAINT "ServerCommunityMember_pkey" PRIMARY KEY ("id"));
+CREATE UNIQUE INDEX "ServerCommunityMember_serverId_userId_key" ON "ServerCommunityMember"("serverId","userId");
+CREATE INDEX "ServerCommunityMember_serverId_status_id_idx" ON "ServerCommunityMember"("serverId","status","id");
+ALTER TABLE "ServerCommunityMember" ADD CONSTRAINT "ServerCommunityMember_serverId_fkey" FOREIGN KEY ("serverId") REFERENCES "RPServer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ServerCommunityMember" ADD CONSTRAINT "ServerCommunityMember_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+CREATE TABLE "ServerAccessRequest" ("id" TEXT NOT NULL,"serverId" TEXT NOT NULL,"userId" TEXT NOT NULL,"message" TEXT NOT NULL,"status" TEXT NOT NULL DEFAULT 'PENDING',"decisionReason" TEXT NOT NULL DEFAULT '',"revision" INTEGER NOT NULL DEFAULT 0,"requestedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"decidedAt" TIMESTAMP(3),CONSTRAINT "ServerAccessRequest_pkey" PRIMARY KEY ("id"));
+CREATE UNIQUE INDEX "ServerAccessRequest_serverId_userId_key" ON "ServerAccessRequest"("serverId","userId");
+CREATE INDEX "ServerAccessRequest_serverId_status_requestedAt_id_idx" ON "ServerAccessRequest"("serverId","status","requestedAt","id");
+ALTER TABLE "ServerAccessRequest" ADD CONSTRAINT "ServerAccessRequest_serverId_fkey" FOREIGN KEY ("serverId") REFERENCES "RPServer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ServerAccessRequest" ADD CONSTRAINT "ServerAccessRequest_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+CREATE TABLE "ServerAccessEvent" ("id" TEXT NOT NULL,"serverId" TEXT NOT NULL,"userId" TEXT NOT NULL,"actorId" TEXT NOT NULL,"actorName" TEXT NOT NULL,"kind" TEXT NOT NULL,"reason" TEXT NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "ServerAccessEvent_pkey" PRIMARY KEY ("id"));
+CREATE INDEX "ServerAccessEvent_serverId_userId_createdAt_id_idx" ON "ServerAccessEvent"("serverId","userId","createdAt","id");
+ALTER TABLE "ServerAccessEvent" ADD CONSTRAINT "ServerAccessEvent_serverId_fkey" FOREIGN KEY ("serverId") REFERENCES "RPServer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+CREATE TABLE "ServerAccessCommand" ("id" TEXT NOT NULL,"serverId" TEXT NOT NULL,"requestKey" TEXT NOT NULL,"fingerprint" TEXT NOT NULL,"result" JSONB NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "ServerAccessCommand_pkey" PRIMARY KEY ("id"));
+CREATE UNIQUE INDEX "ServerAccessCommand_requestKey_key" ON "ServerAccessCommand"("requestKey");
+ALTER TABLE "ServerAccessCommand" ADD CONSTRAINT "ServerAccessCommand_serverId_fkey" FOREIGN KEY ("serverId") REFERENCES "RPServer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
